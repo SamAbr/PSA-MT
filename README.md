@@ -6,27 +6,40 @@ This project focuses on crawling, preprocessing, and aligning public service ann
 
 ```
 PSA-MT/
-├── app/                  # Web interface / applications
-├── data/                 # Raw, interim, processed, and final datasets
+├── app/                      # Streamlit application
+├── data/
 │   ├── raw/
-│   │   ├── lecturer/
-│   │   ├── scraped/     # Where the scraper stores extracted HTML text
-│   │   └── public_corpus/
-│   ├── interim/
-│   ├── processed/
-│   └── final/
-├── models/               # Saved model weights and configurations
-├── notebooks/            # Jupyter notebooks for experimentation
-├── reports/              # Figures, summaries, and write-ups
-├── src/                  # Source code for the pipeline
-│   ├── scraping/        # Web crawlers and HTML parsers
-│   ├── preprocessing/   # Text cleanup and PSA filtering
-│   ├── training/        # MT model training scripts
-│   ├── evaluation/      # BLEU / COMET validation metrics
-│   ├── inference/       # Prediction scripts
-│   └── utils/           # Shared helper functions
-├── requirements.txt      # Python dependencies
-└── README.md             # Project documentation
+│   │   ├── lecturer/         # Original lecturer dataset
+│   │   ├── scraped/          # Raw scraped CSV/JSON files (e.g. agriculture.csv)
+│   │   └── public_corpus/    # Downloaded public bilingual corpora
+│   ├── interim/              # Merged datasets before final cleaning
+│   ├── processed/            # Cleaned datasets ready for training
+│   └── final/                # Final train/validation/test datasets
+├── models/                   # Fine-tuned models and checkpoints
+├── notebooks/                # Data exploration and experiments
+├── reports/                  # Project reports, figures, evaluation results
+├── src/
+│   ├── scraping/             # Dedicated scraper scripts
+│   │   ├── scraper_agriculture.py
+│   │   ├── scraper_health.py
+│   │   ├── scraper_education.py
+│   │   ├── scraper_governance.py
+│   │   └── scraper_security.py
+│   ├── preprocessing/        # Dataset cleaning and filtering
+│   │   ├── preprocess.py
+│   │   ├── clean.py
+│   │   └── merge.py
+│   ├── training/             # MT training scripts
+│   │   └── train.py
+│   ├── evaluation/           # Evaluation metrics (BLEU, COMET)
+│   │   └── evaluate.py
+│   ├── inference/            # Prediction/inference class
+│   │   └── predict.py
+│   └── utils/                # Config parameters and helper utilities
+│       ├── config.py
+│       └── helpers.py
+├── requirements.txt          # Project dependencies
+└── README.md                 # Project documentation
 ```
 
 ## Getting Started
@@ -49,22 +62,21 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### Scraping Proof of Concept
+### Running Scrapers
 
-The scraper pipeline components have been converted into Jupyter Notebooks (`.ipynb`) located in `src/scraping/`:
+Each scraper is self-contained and pre-configured to output to its respective domain CSV file under `data/raw/scraped/`.
 
-- **[fetch.ipynb](file:///C:/Users/Admin/.gemini/antigravity-ide/scratch/PSA-MT/src/scraping/fetch.ipynb)**: Implements raw HTML downloading with fallbacks.
-- **[parser.ipynb](file:///C:/Users/Admin/.gemini/antigravity-ide/scratch/PSA-MT/src/scraping/parser.ipynb)**: Extracts title, headings, paragraphs, and list items in document order.
-- **[exporter.ipynb](file:///C:/Users/Admin/.gemini/antigravity-ide/scratch/PSA-MT/src/scraping/exporter.ipynb)**: Handles saving the scraped data into a structured CSV format.
-- **[main.ipynb](file:///C:/Users/Admin/.gemini/antigravity-ide/scratch/PSA-MT/src/scraping/main.ipynb)**: Entry point notebook to configure arguments, execute, and verify the pipeline.
-
-To run the notebooks, install Jupyter inside the virtual environment and launch the interface:
+For example, to run the agriculture scraper against the default Ministry website (or custom URL):
 
 ```bash
-# Install Jupyter
-pip install jupyter
+# Default live site
+python src/scraping/scraper_agriculture.py
 
-# Start notebook interface
-jupyter notebook
+# Custom target URL
+python src/scraping/scraper_agriculture.py --url https://www.kilimo.go.ke
+
+# Offline local file testing
+python src/scraping/scraper_agriculture.py --url file:///C:/Users/Admin/.gemini/antigravity-ide/scratch/PSA-MT/data/raw/kilimo_mock.html
 ```
-You can then open and run the cells inside `src/scraping/main.ipynb` from the browser or directly in your IDE.
+
+The output will be saved directly to `data/raw/scraped/agriculture.csv`.
