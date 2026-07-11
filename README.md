@@ -51,8 +51,20 @@ pip install -r requirements.txt
 
 ### Scraping Proof of Concept
 
-To run the proof-of-concept scraper for the Ministry of Agriculture & Livestock Development website:
+The scraper pipeline components have been converted into Jupyter Notebooks (`.ipynb`) located in `src/scraping/`:
+
+- **[fetch.ipynb](file:///C:/Users/Admin/.gemini/antigravity-ide/scratch/PSA-MT/src/scraping/fetch.ipynb)**: Implements raw HTML downloading with fallbacks.
+- **[parser.ipynb](file:///C:/Users/Admin/.gemini/antigravity-ide/scratch/PSA-MT/src/scraping/parser.ipynb)**: Extracts title, headings, paragraphs, and list items in document order.
+- **[exporter.ipynb](file:///C:/Users/Admin/.gemini/antigravity-ide/scratch/PSA-MT/src/scraping/exporter.ipynb)**: Handles saving the scraped data into a structured CSV format.
+- **[main.ipynb](file:///C:/Users/Admin/.gemini/antigravity-ide/scratch/PSA-MT/src/scraping/main.ipynb)**: Entry point notebook to configure arguments, execute, and verify the pipeline.
+
+To run the notebooks, install Jupyter inside the virtual environment and launch the interface:
 
 ```bash
-python -m src.scraping.main
+# Install Jupyter
+pip install jupyter
+
+# Start notebook interface
+jupyter notebook
 ```
+You can then open and run the cells inside `src/scraping/main.ipynb` from the browser or directly in your IDE.
