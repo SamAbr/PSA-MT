@@ -1,0 +1,37 @@
+{
+  "started_at": "2026-07-15T14:42:19+00:00",
+  "sources": {
+    "infonet_biovision": {
+      "pages_seen": 1,
+      "pages_fetched": 1,
+      "records_written": 0,
+      "duplicate_records": 5,
+      "robots_skipped": 0,
+      "licence_skipped": 0,
+      "relevance_skipped": 0,
+      "errors": 0
+    }
+  },
+  "finished_at": "2026-07-15T14:42:23+00:00",
+  "output": "data\\kenya_agri_psa.csv",
+  "schema": [
+    "ID",
+    "Domain",
+    "Language",
+    "Language_Code",
+    "PSA",
+    "PSA_Type",
+    "Source_URL",
+    "Source_Title",
+    "Publisher",
+    "Organization_Type",
+    "Published_Date",
+    "Licence",
+    "Licence_URL",
+    "Licence_Evidence",
+    "Collected_At",
+    "Parallel_Group_ID",
+    "Parallel_Link_URL",
+    "Review_Status"
+  ]
+}

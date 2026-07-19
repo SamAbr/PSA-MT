@@ -1,0 +1,68 @@
+{
+  "sources": [
+    {
+      "id": "infonet_biovision",
+      "publisher": "Infonet Biovision / Biovision Farmer Communication Programme",
+      "organization_type": "Kenya-focused NGO",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.infonet-biovision.org", "infonet-biovision.org"],
+      "seed_urls": ["https://www.infonet-biovision.org/"],
+      "sitemap_urls": ["https://www.infonet-biovision.org/sitemap.xml"],
+      "include_path_patterns": ["/", "/plant-health/", "/animal-health/", "/environment/", "/human-health/", "/publications/", "/news/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms", "/cart", "/login", "/register"],
+      "license_mode": "sitewide",
+      "license": "Creative Commons licence (site-wide; exact licence variant should be confirmed before a release)",
+      "license_url": "https://www.infonet-biovision.org/",
+      "license_keywords": ["creative commons", "unless otherwise stated"],
+      "notes": "Kenya-based agricultural extension resource. The crawler verifies the site-wide licence wording on every run."
+    },
+    {
+      "id": "ilri",
+      "publisher": "International Livestock Research Institute (ILRI)",
+      "organization_type": "International research NGO operating in Kenya",
+      "kenya_context_required": true,
+      "allowed_domains": ["www.ilri.org", "ilri.org"],
+      "seed_urls": ["https://www.ilri.org/news", "https://www.ilri.org/research"],
+      "sitemap_urls": ["https://www.ilri.org/sitemap.xml"],
+      "include_path_patterns": ["/news", "/research", "/knowledge", "/publications", "/projects"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms", "/careers", "/jobs"],
+      "license_mode": "sitewide",
+      "license": "CC BY 4.0",
+      "license_url": "https://www.ilri.org/rights-and-permissions",
+      "license_keywords": ["creative commons attribution 4.0", "licensed under"],
+      "notes": "Only records with a Kenya context are retained, because ILRI publishes material from several countries."
+    },
+    {
+      "id": "kilimostat",
+      "publisher": "Ministry of Agriculture and Livestock Development (KilimoSTAT)",
+      "organization_type": "Kenya government",
+      "kenya_context_required": false,
+      "allowed_domains": ["statistics.kilimo.go.ke"],
+      "seed_urls": ["https://statistics.kilimo.go.ke/en/", "https://statistics.kilimo.go.ke/sw/"],
+      "sitemap_urls": ["https://statistics.kilimo.go.ke/sitemap.xml"],
+      "include_path_patterns": ["/en/", "/sw/"],
+      "exclude_path_patterns": ["/admin", "/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "CC BY-NC-SA 3.0 IGO",
+      "license_url": "https://statistics.kilimo.go.ke/en/2_5/",
+      "license_keywords": ["cc by-nc-sa 3.0 igo", "creative commons attribution-noncommercial-sharealike"],
+      "notes": "Includes English and Swahili pages. Commercial use is prohibited by this licence."
+    },
+    {
+      "id": "cifor_icraf_knowledge",
+      "publisher": "CIFOR-ICRAF",
+      "organization_type": "International research NGO operating in Kenya",
+      "kenya_context_required": true,
+      "allowed_domains": ["www.cifor-icraf.org", "cifor-icraf.org"],
+      "seed_urls": ["https://www.cifor-icraf.org/knowledge/"],
+      "sitemap_urls": ["https://www.cifor-icraf.org/sitemap.xml"],
+      "include_path_patterns": ["/knowledge/publication/", "/knowledge/"],
+      "exclude_path_patterns": ["/search", "/contact", "/privacy", "/terms", "/wp-admin"],
+      "license_mode": "per_page",
+      "license": "Creative Commons licence stated on the individual publication page",
+      "license_url": "",
+      "license_keywords": ["licensed under", "creative commons", "cc-by", "cc by"],
+      "notes": "A record is only kept when its own source page contains an explicit licence statement."
+    }
+  ]
+}

@@ -71,8 +71,19 @@ def fetch_html(url: str, use_selenium: bool = False, timeout: int = 15) -> str:
         response = requests.get(url, headers=DEFAULT_HEADERS, timeout=timeout)
         response.raise_for_status()
         return response.text
+    except requests.exceptions.SSLError:
+        logger.warning(f"SSL verification failed for {url}. Retrying with verify=False...")
+        try:
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            response = requests.get(url, headers=DEFAULT_HEADERS, timeout=timeout, verify=False)
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.RequestException as e:
+            logger.error(f"HTTP request error after SSL bypass: {e}")
+            raise e
     except requests.exceptions.RequestException as e:
-        logger.error(f"HTTP request error fetching {url}: {e}")
+        logger.error(f"HTTP request error: {e}")
         raise e
 
 def parse_html_elements(html_content: str) -> list:
