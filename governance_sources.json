@@ -1,0 +1,120 @@
+{
+  "sources": [
+    {
+      "id": "mkulima_mbunifu_gov",
+      "publisher": "Mkulima Mbunifu / Biovision Farmer Communication Programme",
+      "organization_type": "Kenya Civic & Governance Media",
+      "kenya_context_required": false,
+      "language": "sw",
+      "allowed_domains": ["mkulimambunifu.org", "www.mkulimambunifu.org"],
+      "seed_urls": [
+        "https://mkulimambunifu.org/category/kilimo-biashara/",
+        "https://mkulimambunifu.org/category/kilimo-biashara/page/2/",
+        "https://mkulimambunifu.org/category/kilimo-biashara/page/3/",
+        "https://mkulimambunifu.org/category/kutuhusu/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Creative Commons licence (site-wide)",
+      "license_url": "https://mkulimambunifu.org/kuhusu-mkm/",
+      "license_keywords": ["mkulima", "mbunifu"],
+      "notes": "Official Kenya Swahili civic education, trade regulation, and governance guidance."
+    },
+    {
+      "id": "kbc_swahili_gov",
+      "publisher": "Kenya Broadcasting Corporation (KBC Swahili)",
+      "organization_type": "Kenya Government Public Broadcaster",
+      "kenya_context_required": false,
+      "language": "sw",
+      "allowed_domains": ["www.kbc.co.ke", "kbc.co.ke"],
+      "seed_urls": [
+        "https://www.kbc.co.ke/",
+        "https://www.kbc.co.ke/category/swahili/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / Kenya Broadcasting Corporation",
+      "license_url": "https://www.kbc.co.ke/",
+      "license_keywords": ["kbc", "kenya"],
+      "notes": "State public service broadcaster in Kenya for official Swahili government announcements and civic advisories."
+    },
+    {
+      "id": "eacc",
+      "publisher": "Ethics and Anti-Corruption Commission (EACC Kenya)",
+      "organization_type": "Kenya Constitutional Commission",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.eacc.go.ke", "eacc.go.ke"],
+      "seed_urls": [
+        "https://www.eacc.go.ke/",
+        "https://www.eacc.go.ke/media-center/news/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / EACC Kenya",
+      "license_url": "https://www.eacc.go.ke/",
+      "license_keywords": ["eacc", "anti-corruption"],
+      "notes": "Official Kenya anti-corruption agency for public integrity, anti-bribery notices, and ethics advisories."
+    },
+    {
+      "id": "ecitizen",
+      "publisher": "eCitizen Portal (Government of Kenya)",
+      "organization_type": "Kenya Government Portal",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.ecitizen.go.ke", "ecitizen.go.ke"],
+      "seed_urls": [
+        "https://www.ecitizen.go.ke/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms", "/login"],
+      "license_mode": "sitewide",
+      "license": "Public Information / Government of Kenya",
+      "license_url": "https://www.ecitizen.go.ke/",
+      "license_keywords": ["ecitizen", "kenya"],
+      "notes": "Official Kenya digital government services gateway for public service registration, ID, and passport notices."
+    },
+    {
+      "id": "huduma",
+      "publisher": "Huduma Kenya",
+      "organization_type": "Kenya Government Agency",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.hudumakenya.go.ke", "hudumakenya.go.ke"],
+      "seed_urls": [
+        "https://www.hudumakenya.go.ke/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / Huduma Kenya",
+      "license_url": "https://www.hudumakenya.go.ke/",
+      "license_keywords": ["huduma", "kenya"],
+      "notes": "Official Kenya public service delivery portal for civil registration, business licensing, and civic notices."
+    },
+    {
+      "id": "kra",
+      "publisher": "Kenya Revenue Authority (KRA)",
+      "organization_type": "Kenya Revenue Authority",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.kra.go.ke", "kra.go.ke"],
+      "seed_urls": [
+        "https://www.kra.go.ke/",
+        "https://www.kra.go.ke/news-center/notices"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / Kenya Revenue Authority",
+      "license_url": "https://www.kra.go.ke/",
+      "license_keywords": ["kra", "revenue authority"],
+      "notes": "Official Kenya tax and customs authority for tax filing deadlines, PIN registration, and compliance notices."
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "sources": [
+    {
+      "id": "mkulima_mbunifu_security",
+      "publisher": "Mkulima Mbunifu / Biovision Farmer Communication Programme",
+      "organization_type": "Kenya Public Safety & Advisory Media",
+      "kenya_context_required": false,
+      "language": "sw",
+      "allowed_domains": ["mkulimambunifu.org", "www.mkulimambunifu.org"],
+      "seed_urls": [
+        "https://mkulimambunifu.org/category/mazingira/",
+        "https://mkulimambunifu.org/category/mazingira/page/2/",
+        "https://mkulimambunifu.org/category/mazingira/page/3/",
+        "https://mkulimambunifu.org/category/binadamu/",
+        "https://mkulimambunifu.org/category/binadamu/page/2/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Creative Commons licence (site-wide)",
+      "license_url": "https://mkulimambunifu.org/kuhusu-mkm/",
+      "license_keywords": ["mkulima", "mbunifu"],
+      "notes": "Official Kenya Swahili public safety, environmental hazard, and emergency guidance."
+    },
+    {
+      "id": "kbc_swahili_security",
+      "publisher": "Kenya Broadcasting Corporation (KBC Swahili)",
+      "organization_type": "Kenya Government Public Broadcaster",
+      "kenya_context_required": false,
+      "language": "sw",
+      "allowed_domains": ["www.kbc.co.ke", "kbc.co.ke"],
+      "seed_urls": [
+        "https://www.kbc.co.ke/",
+        "https://www.kbc.co.ke/category/swahili/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / Kenya Broadcasting Corporation",
+      "license_url": "https://www.kbc.co.ke/",
+      "license_keywords": ["kbc", "kenya"],
+      "notes": "State public broadcaster in Kenya for official Swahili public safety alerts and security advisories."
+    },
+    {
+      "id": "nationalpolice",
+      "publisher": "National Police Service (NPS Kenya)",
+      "organization_type": "Kenya Security & Law Enforcement Agency",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.nationalpolice.go.ke", "nationalpolice.go.ke"],
+      "seed_urls": [
+        "https://www.nationalpolice.go.ke/",
+        "https://www.nationalpolice.go.ke/media-center/news-and-updates.html"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / National Police Service Kenya",
+      "license_url": "https://www.nationalpolice.go.ke/",
+      "license_keywords": ["national police", "kenya"],
+      "notes": "Official Kenya police portal for public safety notices, crime alerts, and road safety advisories."
+    },
+    {
+      "id": "dci",
+      "publisher": "Directorate of Criminal Investigations (DCI Kenya)",
+      "organization_type": "Kenya Security & Investigation Agency",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.dci.go.ke", "dci.go.ke"],
+      "seed_urls": [
+        "https://www.dci.go.ke/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / DCI Kenya",
+      "license_url": "https://www.dci.go.ke/",
+      "license_keywords": ["dci", "criminal investigations"],
+      "notes": "Official DCI portal for public security alerts, scam warnings, and missing person notices."
+    },
+    {
+      "id": "ntsa",
+      "publisher": "National Transport and Safety Authority (NTSA Kenya)",
+      "organization_type": "Kenya Government Safety Agency",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.ntsa.go.ke", "ntsa.go.ke"],
+      "seed_urls": [
+        "https://www.ntsa.go.ke/",
+        "https://www.ntsa.go.ke/index.php?option=com_content&view=featured"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / NTSA Kenya",
+      "license_url": "https://www.ntsa.go.ke/",
+      "license_keywords": ["ntsa", "road safety"],
+      "notes": "Official road safety authority in Kenya for driver advisories, vehicle inspection notices, and road alerts."
+    },
+    {
+      "id": "ncic",
+      "publisher": "National Cohesion and Integration Commission (NCIC Kenya)",
+      "organization_type": "Kenya Constitutional Commission",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.cohesion.or.ke", "cohesion.or.ke"],
+      "seed_urls": [
+        "https://www.cohesion.or.ke/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / NCIC Kenya",
+      "license_url": "https://www.cohesion.or.ke/",
+      "license_keywords": ["ncic", "cohesion"],
+      "notes": "Official Kenya commission for peace, security, hate speech advisories, and public harmony notices."
+    }
+  ]
+}

@@ -1,0 +1,442 @@
+{
+  "sources": [
+    {
+      "id": "hef",
+      "publisher": "Higher Education Financing (HEF Kenya)",
+      "organization_type": "Kenya Government Portal",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.hef.co.ke",
+        "hef.co.ke"
+      ],
+      "seed_urls": [
+        "https://www.hef.co.ke/",
+        "https://www.hef.co.ke/about-us/",
+        "https://www.hef.co.ke/faqs/",
+        "https://www.hef.co.ke/news/",
+        "https://www.hef.co.ke/scholarships-and-loans/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / Kenya Government Rights Reserved",
+      "license_url": "https://www.hef.co.ke/",
+      "license_keywords": [
+        "higher education",
+        "financing"
+      ],
+      "notes": "Official Kenya government portal for university/TVET scholarships, HELB loans, and student funding advisories."
+    },
+    {
+      "id": "ku",
+      "publisher": "Kenyatta University (KU)",
+      "organization_type": "Public University in Kenya",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.ku.ac.ke",
+        "ku.ac.ke"
+      ],
+      "seed_urls": [
+        "https://www.ku.ac.ke/",
+        "https://www.ku.ac.ke/index.php/news-events",
+        "https://www.ku.ac.ke/index.php/admissions",
+        "https://www.ku.ac.ke/index.php/academics",
+        "https://www.ku.ac.ke/index.php/student-affairs"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / Kenyatta University",
+      "license_url": "https://www.ku.ac.ke/",
+      "license_keywords": [
+        "kenyatta",
+        "university"
+      ],
+      "notes": "Major public university in Kenya for student advisories, academic calendars, and bursaries."
+    },
+    {
+      "id": "jkuat",
+      "publisher": "Jomo Kenyatta University of Agriculture and Technology (JKUAT)",
+      "organization_type": "Public University in Kenya",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.jkuat.ac.ke",
+        "jkuat.ac.ke"
+      ],
+      "seed_urls": [
+        "https://www.jkuat.ac.ke/",
+        "https://www.jkuat.ac.ke/news/",
+        "https://www.jkuat.ac.ke/notices/",
+        "https://www.jkuat.ac.ke/admission/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / JKUAT",
+      "license_url": "https://www.jkuat.ac.ke/",
+      "license_keywords": [
+        "jomo kenyatta",
+        "university"
+      ],
+      "notes": "Leading STEM public university in Kenya for student placement, fee guidelines, and exam notices."
+    },
+    {
+      "id": "mu",
+      "publisher": "Moi University",
+      "organization_type": "Public University in Kenya",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.mu.ac.ke",
+        "mu.ac.ke"
+      ],
+      "seed_urls": [
+        "https://www.mu.ac.ke/",
+        "https://www.mu.ac.ke/index.php/en/news-events",
+        "https://www.mu.ac.ke/index.php/en/admissions"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / Moi University",
+      "license_url": "https://www.mu.ac.ke/",
+      "license_keywords": [
+        "moi",
+        "university"
+      ],
+      "notes": "Public university in Kenya for academic advisories, admissions, and student notices."
+    },
+    {
+      "id": "egerton",
+      "publisher": "Egerton University",
+      "organization_type": "Public University in Kenya",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.egerton.ac.ke",
+        "egerton.ac.ke"
+      ],
+      "seed_urls": [
+        "https://www.egerton.ac.ke/",
+        "https://www.egerton.ac.ke/news-events",
+        "https://www.egerton.ac.ke/admissions"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / Egerton University",
+      "license_url": "https://www.egerton.ac.ke/",
+      "license_keywords": [
+        "egerton",
+        "university"
+      ],
+      "notes": "Agricultural and general public university in Kenya for student advisories."
+    },
+    {
+      "id": "mku",
+      "publisher": "Mount Kenya University (MKU)",
+      "organization_type": "Chartered Private University in Kenya",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "mku.ac.ke",
+        "www.mku.ac.ke"
+      ],
+      "seed_urls": [
+        "https://mku.ac.ke/",
+        "https://mku.ac.ke/news/",
+        "https://mku.ac.ke/announcements/",
+        "https://mku.ac.ke/admissions/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / Mount Kenya University",
+      "license_url": "https://mku.ac.ke/",
+      "license_keywords": [
+        "mount kenya",
+        "university"
+      ],
+      "notes": "Large chartered university in Kenya for student advisories, bursaries, and exam updates."
+    },
+    {
+      "id": "knec",
+      "publisher": "Kenya National Examinations Council (KNEC)",
+      "organization_type": "Kenya Government Agency",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.knec.ac.ke",
+        "knec.ac.ke",
+        "knec-portal.ac.ke"
+      ],
+      "seed_urls": [
+        "https://www.knec.ac.ke/",
+        "https://www.knec.ac.ke/news-updates/",
+        "https://www.knec.ac.ke/our-portals/",
+        "https://www.knec.ac.ke/faq-page/",
+        "https://www.knec.ac.ke/who-we-are/",
+        "https://www.knec.ac.ke/services/business-exams/",
+        "https://www.knec.ac.ke/services/technical-exams/",
+        "https://www.knec.ac.ke/knec-privacy-notice/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms",
+        "/login"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / Kenya National Examinations Council",
+      "license_url": "https://www.knec.ac.ke/",
+      "license_keywords": [
+        "knec",
+        "examinations council"
+      ],
+      "notes": "Official body for KCSE, KPSEA, and national examination registration and candidate advisories."
+    },
+    {
+      "id": "kuccps",
+      "publisher": "Kenya Universities and Colleges Central Placement Service (KUCCPS)",
+      "organization_type": "Kenya Government Agency",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "kuccps.ac.ke",
+        "www.kuccps.ac.ke",
+        "students.kuccps.net",
+        "kuccps.net"
+      ],
+      "seed_urls": [
+        "https://kuccps.ac.ke/",
+        "https://kuccps.net/homepage",
+        "https://kuccps.ac.ke/news/",
+        "https://kuccps.ac.ke/announcements/",
+        "https://kuccps.ac.ke/downloads/",
+        "https://kuccps.ac.ke/career-guidance/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / KUCCPS",
+      "license_url": "https://kuccps.ac.ke/",
+      "license_keywords": [
+        "kuccps",
+        "placement service"
+      ],
+      "notes": "Official portal for university and college degree/diploma placement announcements."
+    },
+    {
+      "id": "helb",
+      "publisher": "Higher Education Loans Board (HELB)",
+      "organization_type": "Kenya State Corporation",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.helb.co.ke",
+        "helb.co.ke"
+      ],
+      "seed_urls": [
+        "https://www.helb.co.ke/",
+        "https://www.helb.co.ke/about-us/",
+        "https://www.helb.co.ke/faqs/",
+        "https://www.helb.co.ke/products/",
+        "https://www.helb.co.ke/media-centre/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / Higher Education Loans Board",
+      "license_url": "https://www.helb.co.ke/",
+      "license_keywords": [
+        "higher education",
+        "board"
+      ],
+      "notes": "Official portal for student loan applications, disbursement alerts, and bursary deadlines."
+    },
+    {
+      "id": "tsc_kenya",
+      "publisher": "Teachers Service Commission (TSC Kenya)",
+      "organization_type": "Kenya Constitutional Commission",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.tsc.go.ke",
+        "tsc.go.ke"
+      ],
+      "seed_urls": [
+        "https://www.tsc.go.ke/",
+        "https://www.tsc.go.ke/index.php/about-us/function-and-mandate",
+        "https://www.tsc.go.ke/index.php/services/teacher-management/recruitment-and-selection",
+        "https://www.tsc.go.ke/index.php/services/teacher-management/transfers",
+        "https://www.tsc.go.ke/index.php/services/teacher-management/professional-misconduct",
+        "https://www.tsc.go.ke/index.php/services/finance/returned-salaries",
+        "https://www.tsc.go.ke/index.php/services/finance/allowances",
+        "https://www.tsc.go.ke/index.php/services/leave",
+        "https://www.tsc.go.ke/index.php/media-centre/faqs/faqs-on-new-teacher-registration",
+        "https://www.tsc.go.ke/index.php/media-centre/world-teachers-day"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / Teachers Service Commission",
+      "license_url": "https://www.tsc.go.ke/",
+      "license_keywords": [
+        "teachers service commission",
+        "tsc"
+      ],
+      "notes": "Official teacher recruitment, registration, and professional development advisories."
+    },
+    {
+      "id": "kicd",
+      "publisher": "Kenya Institute of Curriculum Development (KICD)",
+      "organization_type": "Kenya State Corporation",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.kicd.ac.ke",
+        "kicd.ac.ke"
+      ],
+      "seed_urls": [
+        "https://kicd.ac.ke/",
+        "https://kicd.ac.ke/about-kicd/",
+        "https://kicd.ac.ke/curriculum-designs/",
+        "https://kicd.ac.ke/news-and-events/",
+        "https://kicd.ac.ke/faqs/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / KICD",
+      "license_url": "https://kicd.ac.ke/",
+      "license_keywords": [
+        "curriculum",
+        "development"
+      ],
+      "notes": "Official Kenya institute for CBC curriculum designs, learning materials, and educational advisories."
+    },
+    {
+      "id": "uonbi",
+      "publisher": "University of Nairobi (UoN)",
+      "organization_type": "Public University in Kenya",
+      "kenya_context_required": false,
+      "allowed_domains": [
+        "www.uonbi.ac.ke",
+        "uonbi.ac.ke"
+      ],
+      "seed_urls": [
+        "https://www.uonbi.ac.ke/",
+        "https://www.uonbi.ac.ke/news",
+        "https://www.uonbi.ac.ke/announcements",
+        "https://www.uonbi.ac.ke/admissions"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": [
+        "/"
+      ],
+      "exclude_path_patterns": [
+        "/user/",
+        "/search",
+        "/contact",
+        "/privacy",
+        "/terms"
+      ],
+      "license_mode": "sitewide",
+      "license": "Public Information / University of Nairobi",
+      "license_url": "https://www.uonbi.ac.ke/",
+      "license_keywords": [
+        "university",
+        "nairobi"
+      ],
+      "notes": "Premier public university in Kenya for higher education notices, bursaries, and academic advisories."
+    }
+  ]
+}

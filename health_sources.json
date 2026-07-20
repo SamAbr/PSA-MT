@@ -1,0 +1,126 @@
+{
+  "sources": [
+    {
+      "id": "mkulima_mbunifu_health",
+      "publisher": "Mkulima Mbunifu / Biovision Farmer Communication Programme",
+      "organization_type": "Kenya Health & Nutrition Extension Media",
+      "kenya_context_required": false,
+      "language": "sw",
+      "allowed_domains": ["mkulimambunifu.org", "www.mkulimambunifu.org"],
+      "seed_urls": [
+        "https://mkulimambunifu.org/category/binadamu/",
+        "https://mkulimambunifu.org/category/binadamu/page/2/",
+        "https://mkulimambunifu.org/category/binadamu/page/3/",
+        "https://mkulimambunifu.org/category/binadamu/page/4/",
+        "https://mkulimambunifu.org/category/binadamu/page/5/",
+        "https://mkulimambunifu.org/category/binadamu/page/6/",
+        "https://mkulimambunifu.org/category/binadamu/page/7/",
+        "https://mkulimambunifu.org/category/binadamu/page/8/",
+        "https://mkulimambunifu.org/category/binadamu/page/9/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Creative Commons licence (site-wide)",
+      "license_url": "https://mkulimambunifu.org/kuhusu-mkm/",
+      "license_keywords": ["mkulima", "mbunifu"],
+      "notes": "Official Kenya Swahili public health, nutrition, hygiene, and disease prevention advisories."
+    },
+    {
+      "id": "kbc_swahili_health",
+      "publisher": "Kenya Broadcasting Corporation (KBC Swahili)",
+      "organization_type": "Kenya Government Public Broadcaster",
+      "kenya_context_required": false,
+      "language": "sw",
+      "allowed_domains": ["www.kbc.co.ke", "kbc.co.ke"],
+      "seed_urls": [
+        "https://www.kbc.co.ke/",
+        "https://www.kbc.co.ke/category/swahili/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / Kenya Broadcasting Corporation",
+      "license_url": "https://www.kbc.co.ke/",
+      "license_keywords": ["kbc", "kenya"],
+      "notes": "State public service broadcaster in Kenya for official Swahili public health announcements and health notices."
+    },
+    {
+      "id": "moh",
+      "publisher": "Ministry of Health (MoH Kenya)",
+      "organization_type": "Kenya Government Ministry",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.health.go.ke", "health.go.ke"],
+      "seed_urls": [
+        "https://www.health.go.ke/",
+        "https://www.health.go.ke/press-releases/",
+        "https://www.health.go.ke/news-updates/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / Ministry of Health Kenya",
+      "license_url": "https://www.health.go.ke/",
+      "license_keywords": ["ministry of health", "kenya"],
+      "notes": "Primary Kenya government health body for outbreak advisories, vaccination notices, and public wellness alerts."
+    },
+    {
+      "id": "sha_nhif",
+      "publisher": "Social Health Authority (SHA / NHIF Kenya)",
+      "organization_type": "Kenya Government Health Insurance Body",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.sha.go.ke", "sha.go.ke", "www.nhif.or.ke"],
+      "seed_urls": [
+        "https://www.sha.go.ke/",
+        "https://www.sha.go.ke/faqs"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / Social Health Authority Kenya",
+      "license_url": "https://www.sha.go.ke/",
+      "license_keywords": ["social health authority", "sha"],
+      "notes": "Official Kenya authority for universal healthcare registration, benefit packages, and member advisories."
+    },
+    {
+      "id": "kemri",
+      "publisher": "Kenya Medical Research Institute (KEMRI)",
+      "organization_type": "Kenya Government Research Agency",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.kemri.go.ke", "kemri.go.ke"],
+      "seed_urls": [
+        "https://www.kemri.go.ke/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / KEMRI Kenya",
+      "license_url": "https://www.kemri.go.ke/",
+      "license_keywords": ["kemri", "medical research"],
+      "notes": "Premier medical research institute in Kenya for disease outbreak alerts, health findings, and safety guidance."
+    },
+    {
+      "id": "pharmacy_board",
+      "publisher": "Pharmacy and Poisons Board (PPB Kenya)",
+      "organization_type": "Kenya Government Regulatory Authority",
+      "kenya_context_required": false,
+      "allowed_domains": ["www.pharmacyboardkenya.org", "pharmacyboardkenya.org"],
+      "seed_urls": [
+        "https://www.pharmacyboardkenya.org/"
+      ],
+      "sitemap_urls": [],
+      "include_path_patterns": ["/"],
+      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms"],
+      "license_mode": "sitewide",
+      "license": "Public Information / Pharmacy and Poisons Board Kenya",
+      "license_url": "https://www.pharmacyboardkenya.org/",
+      "license_keywords": ["pharmacy board", "poisons board"],
+      "notes": "Official drug safety and medicine regulatory authority in Kenya for medicine recalls and pharmaceutical alerts."
+    }
+  ]
+}
