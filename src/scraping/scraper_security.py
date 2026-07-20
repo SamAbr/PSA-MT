@@ -103,14 +103,50 @@ def parse_html_elements(html_content: str) -> list:
         raise e
     return elements
 
-def export_to_csv(elements: list, url: str, output_path: str) -> None:
+def crawl_site(start_url: str, max_pages: int = 50, use_selenium: bool = False) -> list:
+    """Recursively crawl subpages starting from start_url up to max_pages."""
+    from urllib.parse import urljoin, urlparse
+    visited = set()
+    queue = [start_url]
+    all_elements = []
+    base_domain = urlparse(start_url).netloc.lower().removeprefix("www.")
+
+    while queue and len(visited) < max_pages:
+        url = queue.pop(0)
+        if url in visited:
+            continue
+        visited.add(url)
+        try:
+            html = fetch_html(url, use_selenium=use_selenium)
+            elements = parse_html_elements(html)
+            for elem in elements:
+                elem["URL"] = url
+            all_elements.extend(elements)
+
+            # Discover internal links
+            soup = BeautifulSoup(html, "lxml")
+            for a in soup.find_all("a", href=True):
+                href = urljoin(url, a["href"])
+                parsed_href = urlparse(href)
+                domain = parsed_href.netloc.lower().removeprefix("www.")
+                if domain == base_domain and href not in visited and href not in queue:
+                    if not any(href.endswith(ext) for ext in [".pdf", ".jpg", ".png", ".zip", ".css", ".js"]):
+                        queue.append(href)
+        except Exception as e:
+            logger.warning(f"Skipping {url} due to error: {e}")
+            continue
+
+    logger.info(f"Crawl completed across {len(visited)} pages. Extracted {len(all_elements)} total elements.")
+    return all_elements
+
+def export_to_csv(elements: list, output_path: str) -> None:
     """Saves parsed elements to CSV format."""
     if not elements:
         logger.warning(f"No elements to export.")
         return
     try:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        export_data = [{"URL": url, "Element": elem["Element"], "Text": elem["Text"]} for elem in elements]
+        export_data = [{"URL": elem.get("URL", ""), "Element": elem["Element"], "Text": elem["Text"]} for elem in elements]
         df = pd.DataFrame(export_data)
         df.to_csv(output_path, index=False, encoding="utf-8")
         logger.info(f"Successfully exported {len(df)} rows to {output_path}")
@@ -120,8 +156,9 @@ def export_to_csv(elements: list, url: str, output_path: str) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="PSA Security Scraper")
-    parser.add_argument("--url", type=str, default="https://www.mod.go.ke", help="Target URL to scrape")
+    parser.add_argument("--url", type=str, default="https://www.nationalpolice.go.ke", help="Target URL to scrape")
     parser.add_argument("--output", type=str, default=None, help="Custom output CSV path")
+    parser.add_argument("--max-pages", type=int, default=50, help="Maximum pages to crawl")
     parser.add_argument("--selenium", action="store_true", help="Use Selenium fallback")
     args = parser.parse_args()
     
@@ -135,13 +172,13 @@ def main():
     logger.info("=" * 60)
     logger.info("Starting Security Scraper")
     logger.info(f"Target URL:  {args.url}")
+    logger.info(f"Max Pages:   {args.max_pages}")
     logger.info(f"Output File: {output_path}")
     logger.info("=" * 60)
     
     try:
-        html = fetch_html(args.url, use_selenium=args.selenium)
-        elements = parse_html_elements(html)
-        export_to_csv(elements, args.url, output_path)
+        elements = crawl_site(args.url, max_pages=args.max_pages, use_selenium=args.selenium)
+        export_to_csv(elements, output_path)
         logger.info("Security Scraper execution completed successfully.")
     except Exception as e:
         logger.error(f"Scraper execution failed: {e}")
