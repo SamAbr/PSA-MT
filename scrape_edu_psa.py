@@ -621,18 +621,21 @@ def main() -> int:
         if unknown:
             raise SystemExit(f"Unknown source id(s): {', '.join(sorted(unknown))}")
         sources = [source for source in sources if source["id"] in selected]
-    args.output.parent.mkdir(parents=True, exist_ok=True)
+    initial_ids, _ = load_existing_ids(args.output)
+    num_before = len(initial_ids)
+    logging.info("Destination file %s had %d records before this run.", args.output, num_before)
 
-    def run_phase(target_lang: str, max_records_limit: int = 0) -> int:
+    def run_phase(target_lang: str, max_records_limit: int = 0) -> tuple[int, int]:
         existing_ids, seen_texts = load_existing_ids(args.output)
         write_header = not args.output.exists() or args.output.stat().st_size == 0
         lock = threading.Lock()
         phase_records = 0
+        total_phase_duplicates = 0
 
         def process_source(source: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             nonlocal phase_records
             stats = RunStats()
-            logging.info("Starting [%s] %s", target_lang.upper(), source["id"])
+            logging.info("Starting [%s] %s (Scraping from: %s)", target_lang.upper(), source["id"], ", ".join(source.get("seed_urls", [])))
             crawler = LicensedCrawler(args, source, stats)
             try:
                 for row in crawler.crawl() or []:
@@ -654,7 +657,7 @@ def main() -> int:
             except Exception:
                 logging.exception("Unexpected failure in %s", source["id"])
                 stats.errors += 1
-            logging.info("Finished [%s] %s: %s records", target_lang.upper(), source["id"], stats.records_written)
+            logging.info("Finished [%s] %s: scraped %d records, skipped %d duplicates", target_lang.upper(), source["id"], stats.records_written, stats.duplicate_records)
             return source["id"], vars(stats)
 
         target_path = args.output
@@ -676,7 +679,8 @@ def main() -> int:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_source = {executor.submit(process_source, source): source for source in sources}
                 for future in as_completed(future_to_source):
-                    future.result()
+                    _, stats_dict = future.result()
+                    total_phase_duplicates += stats_dict.get("duplicate_records", 0)
 
         if target_path != args.output and target_path.exists():
             try:
@@ -690,19 +694,28 @@ def main() -> int:
                 logging.info("Merged temporary records into %s", args.output)
             except Exception:
                 pass
-        return phase_records
+        return phase_records, total_phase_duplicates
+
+    total_written = 0
+    total_duplicates = 0
 
     if args.target_lang == "sw":
         logging.info("=== RUNNING SWAHILI ONLY SCRAPE ===")
-        n_sw = run_phase("sw")
+        n_sw, dup_sw = run_phase("sw")
+        total_written += n_sw
+        total_duplicates += dup_sw
         logging.info("Harvested %d Swahili records.", n_sw)
     elif args.target_lang == "en":
         logging.info("=== RUNNING ENGLISH ONLY SCRAPE ===")
-        n_en = run_phase("en")
+        n_en, dup_en = run_phase("en")
+        total_written += n_en
+        total_duplicates += dup_en
         logging.info("Harvested %d English records.", n_en)
     else:
         logging.info("=== STAGE 1: SCRAPING SWAHILI RECORDS FIRST ===")
-        n_sw = run_phase("sw")
+        n_sw, dup_sw = run_phase("sw")
+        total_written += n_sw
+        total_duplicates += dup_sw
         logging.info("Stage 1 Complete: Harvested %d Swahili records.", n_sw)
 
         if n_sw < 500:
@@ -712,9 +725,18 @@ def main() -> int:
             target_en = n_sw
             logging.info("Swahili count (%d) >= 500. === STAGE 2: SCRAPING EQUAL %d ENGLISH RECORDS FOR 1:1 BALANCE ===", n_sw, target_en)
 
-        n_en = run_phase("en", max_records_limit=target_en)
+        n_en, dup_en = run_phase("en", max_records_limit=target_en)
+        total_written += n_en
+        total_duplicates += dup_en
         logging.info("Stage 2 Complete: Harvested %d English records.", n_en)
-        logging.info("Corpus Finalized: %d Swahili + %d English = %d Total PSAs in %s", n_sw, n_en, n_sw + n_en, args.output)
+
+    logging.info("=" * 60)
+    logging.info("RUN SUMMARY FOR EDUCATION DOMAIN:")
+    logging.info("  Destination file before run: %d records", num_before)
+    logging.info("  Total records scraped in this run: %d", total_written)
+    logging.info("  Total duplicate records skipped (already in CSV): %d", total_duplicates)
+    logging.info("  Destination file now: %d records", num_before + total_written)
+    logging.info("=" * 60)
 
     return 0
 

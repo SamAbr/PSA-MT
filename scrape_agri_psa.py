@@ -598,6 +598,8 @@ def main() -> int:
         sources = [source for source in sources if source["id"] in selected]
     args.output.parent.mkdir(parents=True, exist_ok=True)
     existing_ids, seen_texts = load_existing_ids(args.output)
+    num_before = len(existing_ids)
+    logging.info("Destination file %s had %d records before this run.", args.output, num_before)
     write_header = not args.output.exists() or args.output.stat().st_size == 0
     all_reports: dict[str, Any] = {"started_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(), "sources": {}}
     lock = threading.Lock()
@@ -609,7 +611,7 @@ def main() -> int:
 
         def process_source(source: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             stats = RunStats()
-            logging.info("Starting %s", source["id"])
+            logging.info("Starting %s (Scraping from: %s)", source["id"], ", ".join(source.get("seed_urls", [])))
             crawler = LicensedCrawler(args, source, stats)
             pending: list[dict] = []
             try:
@@ -638,16 +640,20 @@ def main() -> int:
                 with lock:
                     writer.writerows(pending)
                     handle.flush()
-            logging.info("Finished %s: %s records", source["id"], stats.records_written)
+            logging.info("Finished %s: scraped %d records, skipped %d duplicates", source["id"], stats.records_written, stats.duplicate_records)
             return source["id"], vars(stats)
 
         max_workers = min(len(sources), 4)
+        total_written = 0
+        total_duplicates = 0
         try:
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {executor.submit(process_source, src): src for src in sources}
                 for future in as_completed(futures):
                     src_id, stats_dict = future.result()
                     all_reports["sources"][src_id] = stats_dict
+                    total_written += stats_dict.get("records_written", 0)
+                    total_duplicates += stats_dict.get("duplicate_records", 0)
         except KeyboardInterrupt:
             logging.warning("Stopped by user; the CSV already contains completed records.")
 
@@ -657,6 +663,14 @@ def main() -> int:
     args.report.parent.mkdir(parents=True, exist_ok=True)
     with args.report.open("w", encoding="utf-8") as handle:
         json.dump(all_reports, handle, indent=2)
+
+    logging.info("=" * 60)
+    logging.info("RUN SUMMARY FOR AGRICULTURE DOMAIN:")
+    logging.info("  Destination file before run: %d records", num_before)
+    logging.info("  Total records scraped in this run: %d", total_written)
+    logging.info("  Total duplicate records skipped (already in CSV): %d", total_duplicates)
+    logging.info("  Destination file now: %d records", num_before + total_written)
+    logging.info("=" * 60)
     logging.info("Corpus: %s", args.output)
     logging.info("Report: %s", args.report)
     return 0
