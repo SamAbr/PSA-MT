@@ -122,6 +122,25 @@ REJECT_PATTERNS = [
     r"\b(magazine with practical information|publications provide a range of)\b",
 ]
 
+# Pre-compiled regexes for performance — built once at import time.
+_RE_WHITESPACE = re.compile(r"\s+")
+_RE_DOUBLE_SLASH = re.compile(r"/{2,}")
+_RE_WORD = re.compile(r"[a-zA-Z\xc0-\xff']+")
+_RE_WORDS_HYPHENS = re.compile(r"\b[\w'-]+\b")
+_RE_NON_WORD = re.compile(r"[\W\d_]+")
+_RE_SENT_SPLIT = re.compile(r"[.!?]\s+")
+_RE_PREFIX_STRIP = re.compile(r"^[\w\s\(\)\/]+:\s*")
+_RE_MODAL_EDU = re.compile("|".join(MODAL_ACTION_PATTERNS), re.I)
+_RE_REJECT_EDU = re.compile("|".join(REJECT_PATTERNS), re.I)
+_RE_URL_CHECK = re.compile(r"(?:https?://|www\.)")
+_RE_EN_DETECT = re.compile(r"\b(the|and|with|from|students?|candidates?|teachers?)\b")
+# Single alternation pattern for all edu imperative starters.
+_RE_EDU_STARTERS = re.compile(
+    r"^(?:" + "|".join(re.escape(s) for s in sorted(IMPERATIVE_STARTERS, key=len, reverse=True)) + r")(?:\s|,|$)",
+    re.I,
+)
+_RE_MAIN_CLASS = re.compile(r"(content|entry|article|post|main)", re.I)
+
 
 @dataclass
 class RunStats:
@@ -136,14 +155,14 @@ class RunStats:
 
 
 def collapse(value: str) -> str:
-    return re.sub(r"\s+", " ", value.replace("\xa0", " ")).strip()
+    return _RE_WHITESPACE.sub(" ", value.replace("\xa0", " ")).strip()
 
 
 def normalise_url(url: str) -> str:
     parts = urlsplit(url)
     query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
              if k.lower() not in TRACKING_KEYS and not k.lower().startswith("utm_")]
-    path = re.sub(r"/{2,}", "/", parts.path or "/")
+    path = _RE_DOUBLE_SLASH.sub("/", parts.path or "/")
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), path, urlencode(query, doseq=True), ""))
 
 
@@ -229,30 +248,29 @@ def classify_edu_psa(text: str, lang_code: str) -> str:
 
 
 def clean_text_prefix(text: str) -> str:
-    return re.sub(r"^[\w\s\(\)\/]+:\s*", "", text).strip()
+    return _RE_PREFIX_STRIP.sub("", text).strip()
 
 
 def is_usable_text_block(block: str) -> bool:
-    lowered = block.casefold()
-    word_count = len(re.findall(r"\b[\w'-]+\b", block))
-    if word_count < 5 or len(block) > 900:
+    if len(block) > 900:
         return False
-    if re.search(r"(?:https?://|www\.)", lowered) or "isbn" in lowered or "©" in block:
+    lowered = block.casefold()
+    if len(_RE_WORDS_HYPHENS.findall(lowered)) < 5:
+        return False
+    if _RE_URL_CHECK.search(lowered) or "isbn" in lowered or "©" in block:
         return False
     if lowered.startswith(("reference", "references", "bibliography", "source:", "photo:", "figure ")):
         return False
-    for pat in REJECT_PATTERNS:
-        if re.search(pat, lowered):
-            return False
+    if _RE_REJECT_EDU.search(lowered):
+        return False
 
     cleaned = clean_text_prefix(lowered)
-    sentences = [s.strip() for s in re.split(r"[.!?]\s+", cleaned) if s.strip()]
-    for sentence in sentences:
+    for sentence in _RE_SENT_SPLIT.split(cleaned):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
         s_clean = clean_text_prefix(sentence)
-        for starter in IMPERATIVE_STARTERS:
-            if s_clean.startswith(starter + " ") or s_clean.startswith(starter + ",") or s_clean == starter:
-                return True
-        if any(re.search(pat, sentence) for pat in MODAL_ACTION_PATTERNS):
+        if _RE_EDU_STARTERS.match(s_clean) or _RE_MODAL_EDU.search(sentence):
             return True
 
     return False
@@ -287,7 +305,9 @@ def is_relevant(title: str, page_text: str, source: dict[str, Any], strict_psa: 
     return True
 
 
-def extract_page(html: str | bytes, url: str) -> dict[str, Any]:
+def extract_page(html: str | bytes, url: str) -> tuple[dict[str, Any], Any]:
+    """Parse page HTML and return (page_data, soup). Soup is returned so the
+    caller can reuse it for link discovery without parsing the HTML a second time."""
     soup = BeautifulSoup(html, "html.parser")
     links: list[str] = [tag.get("href") for tag in soup.find_all("a", href=True) if tag.get("href")]
     canonical_tag = soup.find("link", rel=lambda value: value and "canonical" in value)
@@ -300,11 +320,11 @@ def extract_page(html: str | bytes, url: str) -> dict[str, Any]:
         element.decompose()
     main = soup.find("main") or soup.find("article") or soup.find(attrs={"role": "main"})
     if main is None:
-        main = soup.find(class_=re.compile(r"(content|entry|article|post|main)", re.I)) or soup.body or soup
+        main = soup.find(class_=_RE_MAIN_CLASS) or soup.body or soup
     blocks: list[str] = []
     for tag in main.find_all(["p", "li", "h2", "h3", "h4"]):
         block = collapse(tag.get_text(" ", strip=True))
-        if 70 <= len(block) <= 1800 and not re.fullmatch(r"[\W\d_]+", block) and is_usable_text_block(block):
+        if 70 <= len(block) <= 1800 and not _RE_NON_WORD.fullmatch(block) and is_usable_text_block(block):
             blocks.append(block)
     if not blocks:
         plain = collapse(main.get_text(" ", strip=True))
@@ -327,7 +347,12 @@ def extract_page(html: str | bytes, url: str) -> dict[str, Any]:
         href = tag.get("href")
         if lang in {"en", "sw"} and href:
             alternates.append((lang, normalise_url(urljoin(url, href))))
-    return {"canonical": canonical, "title": title, "blocks": blocks, "body_text": body_text, "page_lang": page_lang, "published": published, "alternates": alternates, "full_text": collapse(soup.get_text(" ", strip=True)), "links": links}
+    return (
+        {"canonical": canonical, "title": title, "blocks": blocks, "body_text": body_text,
+         "page_lang": page_lang, "published": published, "alternates": alternates,
+         "full_text": collapse(soup.get_text(" ", strip=True)), "links": links},
+        soup,
+    )
 
 
 def licence_evidence(page_text: str, source: dict[str, Any]) -> str:
@@ -493,7 +518,9 @@ class LicensedCrawler:
             if "html" not in content_type:
                 continue
             self.stats.pages_fetched += 1
-            page = extract_page(response.content, response.url)
+            # extract_page returns (data, soup) — soup is not needed here since
+            # edu scraper already pre-collects links inside extract_page.
+            page, _soup = extract_page(response.content, response.url)
             if not is_relevant(page["title"], page["body_text"], self.source, self.args.strict_psa):
                 self.stats.relevance_skipped += 1
             else:
@@ -569,7 +596,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--report", default="data/education_collection_report.json", type=Path)
     parser.add_argument("--max-pages-per-source", type=int, default=500, help="Maximum pages to crawl per source.")
     parser.add_argument("--delay", type=float, default=0.5, help="Minimum seconds between requests.")
-    parser.add_argument("--timeout", type=float, default=30.0)
+    parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--max-sitemaps", type=int, default=1, help="Maximum sitemaps to read.")
     parser.add_argument("--strict-psa", action="store_true")
     parser.add_argument("--use-windows-root-certificates", action="store_true")

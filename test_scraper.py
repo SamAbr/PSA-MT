@@ -13,7 +13,7 @@ class ExtractionTests(unittest.TestCase):
         to agricultural extension officers.
         </p></main></body></html>
         """
-        page = extract_page(html, "https://example.org/en/alert")
+        page, _soup = extract_page(html, "https://example.org/en/alert")
         self.assertEqual(page["alternates"], [("sw", "https://example.org/sw/tahadhari")])
         self.assertEqual(detect_language(page["blocks"][0], page["page_lang"]), ("English", "en"))
         self.assertTrue(is_relevant(page["title"], page["body_text"], {"kenya_context_required": False}, True))

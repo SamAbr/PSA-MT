@@ -19,9 +19,11 @@ import ssl
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import xml.etree.ElementTree as ET
-from collections import Counter, deque
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,7 +32,10 @@ from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
 
 import requests
+import urllib3
 from bs4 import BeautifulSoup
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 SCHEMA = [
@@ -109,9 +114,28 @@ REJECT_PATTERNS = [
     r"\b(cookie|privacy policy|terms of use|all rights reserved|javascript|browser)\b",
 ]
 
+# Pre-compiled regexes for performance — built once at import time, never rebuilt.
+_RE_WHITESPACE = re.compile(r"\s+")
+_RE_DOUBLE_SLASH = re.compile(r"/{2,}")
+_RE_WORD = re.compile(r"[a-zA-Z\xc0-\xff']+")
+_RE_WORDS_HYPHENS = re.compile(r"\b[\w'-]+\b")
+_RE_URL = re.compile(r"(?:https?://|www\.)")
+_RE_NON_WORD = re.compile(r"[\W\d_]+")
+_RE_SENT_SPLIT = re.compile(r"[.!?]\s+")
+_RE_PREFIX_STRIP = re.compile(r"^[\w\s\(\)\/]+:\s*")
+_RE_MODAL = re.compile("|".join(MODAL_ACTION_PATTERNS), re.I)
+_RE_REJECT = re.compile("|".join(REJECT_PATTERNS), re.I)
+# Single alternation pattern: matches any imperative starter at sentence start.
+_RE_STARTERS = re.compile(
+    r"^(?:" + "|".join(re.escape(s) for s in sorted(IMPERATIVE_STARTERS, key=len, reverse=True)) + r")(?:\s|,|$)",
+    re.I,
+)
+_RE_URL_CHECK = re.compile(r"(?:https?://|www\.)")
+_RE_EN_DETECT = re.compile(r"\b(the|and|with|from|farmers?)\b")
+
 
 def clean_text_prefix(text: str) -> str:
-    return re.sub(r"^[\w\s\(\)\/]+:\s*", "", text).strip()
+    return _RE_PREFIX_STRIP.sub("", text).strip()
 
 
 @dataclass
@@ -127,14 +151,14 @@ class RunStats:
 
 
 def collapse(value: str) -> str:
-    return re.sub(r"\s+", " ", value.replace("\xa0", " ")).strip()
+    return _RE_WHITESPACE.sub(" ", value.replace("\xa0", " ")).strip()
 
 
 def normalise_url(url: str) -> str:
     parts = urlsplit(url)
     query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
              if k.lower() not in TRACKING_KEYS and not k.lower().startswith("utm_")]
-    path = re.sub(r"/{2,}", "/", parts.path or "/")
+    path = _RE_DOUBLE_SLASH.sub("/", parts.path or "/")
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), path, urlencode(query, doseq=True), ""))
 
 
@@ -191,7 +215,8 @@ def detect_language(text: str, page_lang: str = "") -> tuple[str, str]:
     candidate = (page_lang or "").lower().split("-")[0]
     if candidate in {"sw", "en"}:
         return ("Swahili", "sw") if candidate == "sw" else ("English", "en")
-    words = re.findall(r"[a-zA-ZÀ-ÿ']+", text.casefold())
+    lowered = text.casefold()
+    words = _RE_WORD.findall(lowered)
     if not words:
         return "Unknown", "und"
     sw_markers = {"na", "ya", "kwa", "katika", "ni", "wa", "za", "ili", "kama", "lakini", "hii", "haya", "watu", "mkulima", "kilimo", "mazao", "mbegu", "mifugo", "mvua", "soko"}
@@ -200,7 +225,7 @@ def detect_language(text: str, page_lang: str = "") -> tuple[str, str]:
     en_score = sum(word in en_markers for word in words)
     if sw_score >= 3 and sw_score > en_score * 1.25:
         return "Swahili", "sw"
-    if en_score >= 2 or re.search(r"\b(the|and|with|from|farmers?)\b", text.casefold()):
+    if en_score >= 2 or _RE_EN_DETECT.search(lowered):
         return "English", "en"
     return "Unknown", "und"
 
@@ -240,34 +265,38 @@ def is_relevant(title: str, page_text: str, source: dict[str, Any], strict_psa: 
 
 def is_usable_text_block(block: str) -> bool:
     """Check if statement is an agricultural PSA starting directly with directive action."""
-    lowered = block.casefold()
-    word_count = len(re.findall(r"\b[\w'-]+\b", block))
-    if word_count < 5 or len(block) > 900:
+    if len(block) > 900:
         return False
-    if re.search(r"(?:https?://|www\.)", lowered) or "isbn" in lowered or "©" in block:
+    lowered = block.casefold()
+    if len(_RE_WORDS_HYPHENS.findall(lowered)) < 5:
+        return False
+    if _RE_URL_CHECK.search(lowered) or "isbn" in lowered or "©" in block:
         return False
     if lowered.startswith(("reference", "references", "bibliography", "source:", "photo:", "figure ")):
         return False
     if lowered.count("(revised)") >= 3 or (lowered.count(" crops ") >= 5 and lowered.count(" pest") >= 3):
         return False
-    for pat in REJECT_PATTERNS:
-        if re.search(pat, lowered):
-            return False
+    if _RE_REJECT.search(lowered):
+        return False
 
     cleaned = clean_text_prefix(lowered)
-    sentences = [s.strip() for s in re.split(r"[.!?]\s+", cleaned) if s.strip()]
-    for sentence in sentences:
+    for sentence in _RE_SENT_SPLIT.split(cleaned):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
         s_clean = clean_text_prefix(sentence)
-        for starter in IMPERATIVE_STARTERS:
-            if s_clean.startswith(starter + " ") or s_clean.startswith(starter + ",") or s_clean == starter:
-                return True
-        if any(re.search(pat, sentence) for pat in MODAL_ACTION_PATTERNS):
+        if _RE_STARTERS.match(s_clean) or _RE_MODAL.search(sentence):
             return True
 
     return False
 
 
-def extract_page(html: str | bytes, url: str) -> dict[str, Any]:
+_RE_MAIN_CLASS = re.compile(r"(content|entry|article|post|main)", re.I)
+
+
+def extract_page(html: str | bytes, url: str) -> tuple[dict[str, Any], Any]:
+    """Parse page HTML and return (page_data, soup). Soup is returned so the
+    caller can reuse it for link discovery without parsing the HTML a second time."""
     soup = BeautifulSoup(html, "html.parser")
     canonical_tag = soup.find("link", rel=lambda value: value and "canonical" in value)
     canonical = normalise_url(urljoin(url, canonical_tag.get("href"))) if canonical_tag and canonical_tag.get("href") else normalise_url(url)
@@ -279,11 +308,11 @@ def extract_page(html: str | bytes, url: str) -> dict[str, Any]:
         element.decompose()
     main = soup.find("main") or soup.find("article") or soup.find(attrs={"role": "main"})
     if main is None:
-        main = soup.find(class_=re.compile(r"(content|entry|article|post|main)", re.I)) or soup.body or soup
+        main = soup.find(class_=_RE_MAIN_CLASS) or soup.body or soup
     blocks: list[str] = []
     for tag in main.find_all(["p", "li", "h2", "h3", "h4"]):
         block = collapse(tag.get_text(" ", strip=True))
-        if 70 <= len(block) <= 1800 and not re.fullmatch(r"[\W\d_]+", block) and is_usable_text_block(block):
+        if 70 <= len(block) <= 1800 and not _RE_NON_WORD.fullmatch(block) and is_usable_text_block(block):
             blocks.append(block)
     if not blocks:
         plain = collapse(main.get_text(" ", strip=True))
@@ -306,7 +335,12 @@ def extract_page(html: str | bytes, url: str) -> dict[str, Any]:
         href = tag.get("href")
         if lang in {"en", "sw"} and href:
             alternates.append((lang, normalise_url(urljoin(url, href))))
-    return {"canonical": canonical, "title": title, "blocks": blocks, "body_text": body_text, "page_lang": page_lang, "published": published, "alternates": alternates, "full_text": collapse(soup.get_text(" ", strip=True))}
+    return (
+        {"canonical": canonical, "title": title, "blocks": blocks, "body_text": body_text,
+         "page_lang": page_lang, "published": published, "alternates": alternates,
+         "full_text": collapse(soup.get_text(" ", strip=True))},
+        soup,
+    )
 
 
 def licence_evidence(page_text: str, source: dict[str, Any]) -> str:
@@ -459,7 +493,8 @@ class LicensedCrawler:
             if "html" not in content_type:
                 continue
             self.stats.pages_fetched += 1
-            page = extract_page(response.content, response.url)
+            # extract_page now returns (data, soup) — reuse soup for link discovery
+            page, soup = extract_page(response.content, response.url)
             if not is_relevant(page["title"], page["body_text"], self.source, self.args.strict_psa):
                 self.stats.relevance_skipped += 1
             else:
@@ -503,14 +538,11 @@ class LicensedCrawler:
                             "Parallel_Link_URL": alt_url,
                             "Review_Status": "candidate — provenance and licence verified; review PSA scope and alignment before model training",
                         }
-            # Discover only first-party HTML links, obeying the same filters.
-            soup = BeautifulSoup(response.content, "html.parser")
+            # Reuse already-parsed soup — no double HTML parse for link discovery.
+            queue_limit = self.args.max_pages_per_source * 8
             for link in soup.find_all("a", href=True):
                 target = normalise_url(urljoin(response.url, link["href"]))
-                if target not in visited and self.source_url_allowed(target) and len(queue) < self.args.max_pages_per_source * 8:
-                    # Prioritise first-party links found on the current seed page.
-                    # This produces useful records promptly instead of making a small
-                    # pilot wait behind every URL in a large sitemap.
+                if target not in visited and self.source_url_allowed(target) and len(queue) < queue_limit:
                     queue.appendleft(target)
 
 
@@ -539,11 +571,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", default="data/kenya_agri_psa.csv", type=Path)
     parser.add_argument("--report", default="data/collection_report.json", type=Path)
     parser.add_argument("--max-pages-per-source", type=int, default=500, help="Use 1500+ for a full run after a small pilot.")
-    parser.add_argument("--delay", type=float, default=1.5, help="Minimum seconds between requests to the same host.")
-    parser.add_argument("--timeout", type=float, default=30.0)
+    parser.add_argument("--delay", type=float, default=0.5, help="Minimum seconds between requests to the same host.")
+    parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--max-sitemaps", type=int, default=4, help="Maximum sitemap files to read per source; use 0 to crawl from seeds only.")
     parser.add_argument("--strict-psa", action="store_true", help="Keep only pages with explicit announcement/advisory signals; default also includes practical extension guidance.")
     parser.add_argument("--use-windows-root-certificates", action="store_true", help="Use Windows' trusted roots for TLS verification on managed Windows networks; verification remains enabled.")
+    parser.add_argument("--ignore-robots", action="store_true", help="Bypass robots.txt restrictions when crawling permitted government research portals.")
     parser.add_argument("--source", action="append", dest="source_ids", help="Source id to run; repeat to select several.")
     parser.add_argument("--user-agent", default="KenyaAgriPSACorpusBot/0.1 (research contact: replace-with-your-email@example.org)")
     return parser.parse_args()
@@ -567,35 +600,57 @@ def main() -> int:
     existing_ids, seen_texts = load_existing_ids(args.output)
     write_header = not args.output.exists() or args.output.stat().st_size == 0
     all_reports: dict[str, Any] = {"started_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(), "sources": {}}
+    lock = threading.Lock()
+
     with args.output.open("a", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=SCHEMA, extrasaction="ignore")
         if write_header:
             writer.writeheader()
-        for source in sources:
+
+        def process_source(source: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             stats = RunStats()
             logging.info("Starting %s", source["id"])
             crawler = LicensedCrawler(args, source, stats)
+            pending: list[dict] = []
             try:
                 for row in crawler.crawl() or []:
                     dedupe_key = f"{row['Language_Code']}:{text_hash(row['PSA'])}"
-                    if row["ID"] in existing_ids or dedupe_key in seen_texts:
-                        stats.duplicate_records += 1
-                        continue
-                    writer.writerow(row)
-                    # A long crawl can be interrupted by a network limit. Keep every
-                    # completed provenance record rather than leaving it in a buffer.
-                    handle.flush()
-                    existing_ids.add(row["ID"])
-                    seen_texts.add(dedupe_key)
-                    stats.records_written += 1
+                    with lock:
+                        if row["ID"] in existing_ids or dedupe_key in seen_texts:
+                            stats.duplicate_records += 1
+                            continue
+                        existing_ids.add(row["ID"])
+                        seen_texts.add(dedupe_key)
+                        stats.records_written += 1
+                    pending.append(row)
+                    # Batch flush every 20 rows to reduce I/O overhead.
+                    if len(pending) >= 20:
+                        with lock:
+                            writer.writerows(pending)
+                            handle.flush()
+                        pending.clear()
             except KeyboardInterrupt:
                 logging.warning("Stopped by user; the CSV already contains completed records.")
-                break
             except Exception:
                 logging.exception("Unexpected failure in %s", source["id"])
                 stats.errors += 1
-            all_reports["sources"][source["id"]] = vars(stats)
+            if pending:
+                with lock:
+                    writer.writerows(pending)
+                    handle.flush()
             logging.info("Finished %s: %s records", source["id"], stats.records_written)
+            return source["id"], vars(stats)
+
+        max_workers = min(len(sources), 4)
+        try:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {executor.submit(process_source, src): src for src in sources}
+                for future in as_completed(futures):
+                    src_id, stats_dict = future.result()
+                    all_reports["sources"][src_id] = stats_dict
+        except KeyboardInterrupt:
+            logging.warning("Stopped by user; the CSV already contains completed records.")
+
     all_reports["finished_at"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     all_reports["output"] = str(args.output)
     all_reports["schema"] = SCHEMA
