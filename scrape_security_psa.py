@@ -456,7 +456,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
     if args.max_pages_per_source < 1 or args.delay < 0:
         raise SystemExit("--max-pages-per-source must be positive and --delay cannot be negative")
     if args.max_sitemaps < 0:
@@ -470,7 +470,7 @@ def main() -> int:
         sources = [source for source in sources if source["id"] in selected]
     initial_ids, _ = load_existing_ids(args.output)
     num_before = len(initial_ids)
-    logging.info("Destination file %s had %d records before this run.", args.output, num_before)
+    logging.debug("Destination file %s had %d records before this run.", args.output, num_before)
 
     def run_phase(target_lang: str, max_records_limit: int = 0) -> tuple[int, int]:
         existing_ids, seen_texts = load_existing_ids(args.output)
@@ -482,7 +482,6 @@ def main() -> int:
         def process_source(source: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             nonlocal phase_records
             stats = RunStats()
-            logging.info("Starting [%s] %s (Scraping from: %s)", target_lang.upper(), source["id"], ", ".join(source.get("seed_urls", [])))
             crawler = LicensedCrawler(args, source, stats)
             try:
                 for row in crawler.crawl() or []:
@@ -502,9 +501,16 @@ def main() -> int:
                         stats.records_written += 1
                         phase_records += 1
             except Exception:
-                logging.exception("Unexpected failure in %s", source["id"])
                 stats.errors += 1
-            logging.info("Finished [%s] %s: scraped %d records, skipped %d duplicates", target_lang.upper(), source["id"], stats.records_written, stats.duplicate_records)
+            
+            domain = host_of(source["seed_urls"][0])
+            total_scraped = stats.records_written + stats.duplicate_records
+            with lock:
+                print(f"Scraping {domain}")
+                print(f"Scraped {total_scraped} records")
+                print(f"{stats.duplicate_records} records duplicate")
+                print(f"{stats.records_written} records saved")
+                print()  # Add an empty line for readability between domains
             return source["id"], vars(stats)
 
         target_path = args.output

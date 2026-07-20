@@ -1,13 +1,56 @@
 {
-  "started_at": "2026-07-20T06:15:20+00:00",
-  "sources": {},
-  "finished_at": "2026-07-20T06:45:09+00:00",
+  "started_at": "2026-07-20T09:09:20+00:00",
+  "sources": {
+    "cifor_icraf_knowledge": {
+      "pages_seen": 1,
+      "pages_fetched": 0,
+      "records_written": 0,
+      "duplicate_records": 0,
+      "robots_skipped": 2,
+      "licence_skipped": 0,
+      "relevance_skipped": 0,
+      "non_english_skipped": 0,
+      "errors": 0
+    },
+    "kilimostat": {
+      "pages_seen": 0,
+      "pages_fetched": 0,
+      "records_written": 0,
+      "duplicate_records": 0,
+      "robots_skipped": 1,
+      "licence_skipped": 0,
+      "relevance_skipped": 0,
+      "non_english_skipped": 0,
+      "errors": 1
+    },
+    "infonet_biovision": {
+      "pages_seen": 228,
+      "pages_fetched": 81,
+      "records_written": 0,
+      "duplicate_records": 10,
+      "robots_skipped": 0,
+      "licence_skipped": 0,
+      "relevance_skipped": 57,
+      "non_english_skipped": 0,
+      "errors": 80
+    },
+    "ilri": {
+      "pages_seen": 3066,
+      "pages_fetched": 276,
+      "records_written": 3,
+      "duplicate_records": 7,
+      "robots_skipped": 0,
+      "licence_skipped": 0,
+      "relevance_skipped": 255,
+      "non_english_skipped": 0,
+      "errors": 2789
+    }
+  },
+  "finished_at": "2026-07-20T09:14:43+00:00",
   "output": "data\\kenya_agri_psa.csv",
   "schema": [
     "ID",
     "Domain",
-    "Language",
-    "Language_Code",
     "PSA",
     "PSA_Type",
     "Source_URL",
@@ -19,8 +62,7 @@
     "Licence_URL",
     "Licence_Evidence",
     "Collected_At",
-    "Parallel_Group_ID",
-    "Parallel_Link_URL",
     "Review_Status"
-  ]
+  ],
+  "stopped_reason": "all_sources_exhausted"
 }
