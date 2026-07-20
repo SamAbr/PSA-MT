@@ -1,7 +1,7 @@
 {
-  "started_at": "2026-07-20T00:20:36+00:00",
+  "started_at": "2026-07-20T06:15:20+00:00",
   "sources": {},
-  "finished_at": "2026-07-20T06:04:17+00:00",
+  "finished_at": "2026-07-20T06:45:09+00:00",
   "output": "data\\kenya_agri_psa.csv",
   "schema": [
     "ID",

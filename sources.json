@@ -9,7 +9,7 @@
       "seed_urls": ["https://www.infonet-biovision.org/"],
       "sitemap_urls": ["https://www.infonet-biovision.org/sitemap.xml"],
       "include_path_patterns": ["/", "/plant-health/", "/animal-health/", "/environment/", "/human-health/", "/publications/", "/news/"],
-      "exclude_path_patterns": ["/user/", "/search", "/contact", "/privacy", "/terms", "/cart", "/login", "/register"],
+      "exclude_path_patterns": ["/user/", "/bookmarks", "/bookmark", "/search", "/contact", "/privacy", "/terms", "/cart", "/login", "/register"],
       "license_mode": "sitewide",
       "license": "Creative Commons licence (site-wide; exact licence variant should be confirmed before a release)",
       "license_url": "https://www.infonet-biovision.org/",
