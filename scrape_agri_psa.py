@@ -1,9 +1,24 @@
 #!/usr/bin/env python3
-"""Build an auditable English/Swahili Kenyan agriculture PSA corpus from licensed pages.
+"""Build an auditable English-only Kenyan agriculture PSA corpus from licensed pages.
 
 The program intentionally collects only sources configured with explicit re-use terms,
 obeys robots.txt, throttles requests, and writes paragraph-level records rather than
 silently treating an entire web page as one translation unit.
+
+Changes from the bilingual version:
+  * English-only: all Swahili term lists, detection branches, and the hreflang
+    "alternate language" crawl/parallel-pairing logic have been removed. Fewer
+    regex branches to test per block AND fewer pages fetched per source (no more
+    detour to fetch the sw/ counterpart of every en/ page), so it's faster too.
+  * Record + time budgeted: --target-records and --time-budget-minutes let the
+    run stop as soon as it has "enough", instead of only stopping when every
+    source's --max-pages-per-source is exhausted.
+  * Bandwidth-capped fetches: HTML responses are read up to --max-page-bytes
+    (default 2 MB) instead of being downloaded in full; large listing/archive
+    pages you'd only skim three paragraphs from no longer cost their whole size.
+  * --max-workers is now explicit and defaults higher (up to 8), since dropping
+    the alternate-language crawl frees up headroom without hammering any single host
+    harder (the per-host --delay is unchanged and still enforced).
 """
 
 from __future__ import annotations
@@ -38,53 +53,39 @@ from bs4 import BeautifulSoup
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
+# Parallel-corpus fields (Language, Language_Code, Parallel_Group_ID, Parallel_Link_URL)
+# are gone: every record is English, and we no longer chase a Swahili counterpart page.
 SCHEMA = [
-    "ID", "Domain", "Language", "Language_Code", "PSA", "PSA_Type",
+    "ID", "Domain", "PSA", "PSA_Type",
     "Source_URL", "Source_Title", "Publisher", "Organization_Type",
     "Published_Date", "Licence", "Licence_URL", "Licence_Evidence",
-    "Collected_At", "Parallel_Group_ID", "Parallel_Link_URL", "Review_Status",
+    "Collected_At", "Review_Status",
 ]
 
-AGRI_TERMS = {
-    "en": (
-        "agricultur", "farmer", "farm", "crop", "maize", "bean", "wheat", "rice", "sorghum",
-        "millet", "cassava", "potato", "vegetable", "fruit", "horticulture", "livestock", "cattle",
-        "dairy", "poultry", "chicken", "goat", "sheep", "fodder", "feed", "fertilizer", "seed",
-        "soil", "harvest", "planting", "irrigation", "rainfall", "drought", "pest", "disease",
-        "fall armyworm", "market price", "food security", "agronom", "agroecolog", "agroforestry",
-        "beekeep", "coffee", "tea", "sugarcane", "fisher", "aquaculture", "organic farming",
-    ),
-    "sw": (
-        "kilimo", "mkulima", "wakulima", "mazao", "mbegu", "udongo", "mbolea", "mavuno",
-        "mifugo", "ng'ombe", "ngombe", "kuku", "mbuzi", "chakula", "usalama wa chakula", "soko",
-        "bei", "wadudu", "ugonjwa", "magonjwa", "mvua", "ukame", "umwagiliaji", "mahindi",
-        "maharagwe", "ngano", "mpunga", "viazi", "mboga", "ufugaji", "uvuvi", "asali", "chai", "kahawa",
-    ),
-}
-PSA_SIGNALS = {
-    "en": (
-        "advisory", "alert", "notice", "announcement", "update", "warning", "guidance", "recommend",
-        "farmers should", "must", "how to", "tips", "market", "forecast", "extension", "control", "manage",
-        "prevent", "protect", "prepare", "register", "apply", "training", "call for", "public participation",
-    ),
-    "sw": (
-        "tahadhari", "tangazo", "taarifa", "ushauri", "waelekezwe", "wanapaswa", "lazima", "jinsi ya",
-        "mapendekezo", "soko", "utabiri", "zuia", "dhibiti", "kinga", "jiandae", "mafunzo", "wito wa",
-    ),
-}
-KENYA_TERMS = ("kenya", "kenyan", "nairobi", "mombasa", "kisumu", "nakuru", "eldoret", "kiambu", "makueni", "kajiado", "turkana", "kiswahili")
+AGRI_TERMS = (
+    "agricultur", "farmer", "farm", "crop", "maize", "bean", "wheat", "rice", "sorghum",
+    "millet", "cassava", "potato", "vegetable", "fruit", "horticulture", "livestock", "cattle",
+    "dairy", "poultry", "chicken", "goat", "sheep", "fodder", "feed", "fertilizer", "seed",
+    "soil", "harvest", "planting", "irrigation", "rainfall", "drought", "pest", "disease",
+    "fall armyworm", "market price", "food security", "agronom", "agroecolog", "agroforestry",
+    "beekeep", "coffee", "tea", "sugarcane", "fisher", "aquaculture", "organic farming",
+)
+PSA_SIGNALS = (
+    "advisory", "alert", "notice", "announcement", "update", "warning", "guidance", "recommend",
+    "farmers should", "must", "how to", "tips", "market", "forecast", "extension", "control", "manage",
+    "prevent", "protect", "prepare", "register", "apply", "training", "call for", "public participation",
+)
+KENYA_TERMS = ("kenya", "kenyan", "nairobi", "mombasa", "kisumu", "nakuru", "eldoret", "kiambu", "makueni", "kajiado", "turkana")
 SKIP_SUFFIXES = (".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".zip", ".mp3", ".mp4", ".avi", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".pdf")
 TRACKING_KEYS = {"fbclid", "gclid", "mc_cid", "mc_eid", "_hsenc", "_hsmi"}
 
 IMPERATIVE_STARTERS = [
-    # English Imperative Verbs & Starters
     "activate", "apply", "attend", "avoid", "check", "clean", "collect", "confirm",
     "cooperate", "create", "destroy", "download", "ensure", "heed", "inspect",
     "log in", "login", "maintain", "manage", "minimize", "monitor", "note", "observe", "obtain",
     "participate", "pay", "prepare", "prevent", "protect", "read", "register",
     "renew", "report", "review", "sanitize", "say no", "select", "stay clear", "store",
     "submit", "track", "transfer", "update", "upload", "use", "verify", "visit",
-    # Agriculture Directives & Verbs (English)
     "plant", "sow", "harvest", "prune", "weed", "water", "irrigate", "fertilize", "feed",
     "vaccinate", "drench", "treat", "spray", "mulch", "plough", "till", "graze", "breed",
     "cull", "store", "dry", "grade", "sell", "market", "isolate", "quarantine", "dip",
@@ -92,20 +93,12 @@ IMPERATIVE_STARTERS = [
     "the ministry of agriculture", "county government", "extension officer",
     "farmers are advised", "farmers should", "pastoralists should", "growers should",
     "always", "never", "do not", "don't", "to prevent", "to control", "to manage", "to avoid",
-    # Swahili Imperative Verbs & Starters (Agriculture)
-    "ondoa", "zuia", "dhibiti", "tumia", "epuka", "hakikisha", "punguza", "toa taarifa",
-    "jiandae", "safisha", "sajili", "tuma", "lipa", "angalia", "thibitisha", "hudhuria",
-    "pakua", "ingia", "pata", "usitumie", "usifanye", "panda", "vuna", "nyunyizia",
-    "palilia", "chanja", "lisha", "hifadhi", "panga", "mwagilia", "kausha", "uza",
-    "tenga", "wakulima wanapaswa", "wafugaji wanapaswa", "wakulima wote", "wafugaji wote",
-    "tahadhari", "tangazo", "taarifa kwa umma", "ushauri wa kilimo", "ilani", "taarifa",
 ]
 
 MODAL_ACTION_PATTERNS = [
     r"\b(farmers?|pastoralists?|growers?|breeders?|producers?)\s+(should|must|are advised|need to)\b",
     r"\b(should|must) (be|have|apply|plant|spray|harvest|vaccinate|control|prevent|manage|verify|check)\b",
     r"\b(is|are) recommended\b",
-    r"\b(wanapaswa|inatakikana|inashauriwa|inabidi|ni lazima|hakikisha)\b",
 ]
 
 REJECT_PATTERNS = [
@@ -132,6 +125,12 @@ _RE_STARTERS = re.compile(
 )
 _RE_URL_CHECK = re.compile(r"(?:https?://|www\.)")
 _RE_EN_DETECT = re.compile(r"\b(the|and|with|from|farmers?)\b")
+_RE_MAIN_CLASS = re.compile(r"(content|entry|article|post|main)", re.I)
+
+EN_MARKERS = {"the", "and", "of", "to", "in", "for", "with", "farmers", "agriculture", "crop", "livestock", "weather", "market"}
+# Any of these lang-prefix values on <html lang="..."> lets us reject a page
+# before we even look at its words — cheaper than running the heuristic.
+NON_ENGLISH_LANG_PREFIXES = {"sw", "fr", "ar", "am", "so", "zh", "es", "pt", "de"}
 
 
 def clean_text_prefix(text: str) -> str:
@@ -147,7 +146,32 @@ class RunStats:
     robots_skipped: int = 0
     licence_skipped: int = 0
     relevance_skipped: int = 0
+    non_english_skipped: int = 0
     errors: int = 0
+
+
+class Progress:
+    """Shared, thread-safe stop condition: whichever of (record target, time
+    budget) is hit first ends the crawl. Checked cooperatively by every
+    source's crawl loop so a big pilot doesn't overrun once you have enough."""
+
+    def __init__(self, target_records: int, deadline_monotonic: float):
+        self.target_records = target_records
+        self.deadline_monotonic = deadline_monotonic
+        self._count = 0
+        self._lock = threading.Lock()
+
+    def add(self, n: int = 1) -> None:
+        with self._lock:
+            self._count += n
+
+    @property
+    def count(self) -> int:
+        with self._lock:
+            return self._count
+
+    def done(self) -> bool:
+        return self.count >= self.target_records or time.monotonic() >= self.deadline_monotonic
 
 
 def collapse(value: str) -> str:
@@ -170,8 +194,8 @@ def text_hash(text: str) -> str:
     return hashlib.sha256(collapse(text).casefold().encode("utf-8")).hexdigest()
 
 
-def record_id(url: str, language: str, psa: str) -> str:
-    digest = hashlib.sha256(f"{normalise_url(url)}\0{language}\0{collapse(psa)}".encode("utf-8")).hexdigest()[:18].upper()
+def record_id(url: str, psa: str) -> str:
+    digest = hashlib.sha256(f"{normalise_url(url)}\0{collapse(psa)}".encode("utf-8")).hexdigest()[:18].upper()
     return f"KAPSA-{digest}"
 
 
@@ -210,24 +234,21 @@ def windows_trust_bundle() -> Path:
     return bundle
 
 
-def detect_language(text: str, page_lang: str = "") -> tuple[str, str]:
-    """Conservative English/Swahili detector; does not mislabel other languages as Swahili."""
-    candidate = (page_lang or "").lower().split("-")[0]
-    if candidate in {"sw", "en"}:
-        return ("Swahili", "sw") if candidate == "sw" else ("English", "en")
+def is_english_text(text: str, page_lang: str = "") -> bool:
+    """Conservative English detector. A declared non-English <html lang> short-circuits
+    immediately (cheap rejection before any regex runs); otherwise falls back to a
+    word-frequency heuristic."""
+    prefix = (page_lang or "").lower().split("-")[0]
+    if prefix == "en":
+        return True
+    if prefix in NON_ENGLISH_LANG_PREFIXES:
+        return False
     lowered = text.casefold()
     words = _RE_WORD.findall(lowered)
     if not words:
-        return "Unknown", "und"
-    sw_markers = {"na", "ya", "kwa", "katika", "ni", "wa", "za", "ili", "kama", "lakini", "hii", "haya", "watu", "mkulima", "kilimo", "mazao", "mbegu", "mifugo", "mvua", "soko"}
-    en_markers = {"the", "and", "of", "to", "in", "for", "with", "farmers", "agriculture", "crop", "livestock", "weather", "market"}
-    sw_score = sum(word in sw_markers or word.startswith(("kili", "mku", "mifa", "mazao", "mbegu")) for word in words)
-    en_score = sum(word in en_markers for word in words)
-    if sw_score >= 3 and sw_score > en_score * 1.25:
-        return "Swahili", "sw"
-    if en_score >= 2 or _RE_EN_DETECT.search(lowered):
-        return "English", "en"
-    return "Unknown", "und"
+        return False
+    en_score = sum(word in EN_MARKERS for word in words)
+    return en_score >= 2 or bool(_RE_EN_DETECT.search(lowered))
 
 
 def has_term(text: str, terms: Iterable[str]) -> bool:
@@ -235,31 +256,27 @@ def has_term(text: str, terms: Iterable[str]) -> bool:
     return any(term in lowered for term in terms)
 
 
-def classify_psa(text: str, lang_code: str) -> str:
+def classify_psa(text: str) -> str:
     lowered = text.casefold()
-    if any(term in lowered for term in ("pest", "disease", "armyworm", "wadudu", "ugonjwa", "magonjwa")):
+    if any(term in lowered for term in ("pest", "disease", "armyworm")):
         return "Pest or disease advisory"
-    if any(term in lowered for term in ("weather", "rainfall", "drought", "forecast", "mvua", "ukame", "utabiri")):
+    if any(term in lowered for term in ("weather", "rainfall", "drought", "forecast")):
         return "Weather or climate notice"
-    if any(term in lowered for term in ("market", "price", "subsid", "grant", "soko", "bei", "ruzuku")):
+    if any(term in lowered for term in ("market", "price", "subsid", "grant")):
         return "Market or support update"
-    if any(term in lowered for term in ("notice", "announcement", "public participation", "tangazo", "taarifa", "wito wa")):
+    if any(term in lowered for term in ("notice", "announcement", "public participation")):
         return "Public announcement"
     return "Agricultural extension guidance"
 
 
 def is_relevant(title: str, page_text: str, source: dict[str, Any], strict_psa: bool) -> bool:
     combined = f"{title} {page_text}".casefold()
-    language = "sw" if has_term(combined, AGRI_TERMS["sw"]) and not has_term(combined, AGRI_TERMS["en"]) else "en"
-    if not has_term(combined, AGRI_TERMS[language]):
-        # Mixed English/Swahili pages are valid if either vocabulary matches.
-        if not any(has_term(combined, terms) for terms in AGRI_TERMS.values()):
-            return False
+    if not has_term(combined, AGRI_TERMS):
+        return False
     if source.get("kenya_context_required") and not has_term(combined, KENYA_TERMS):
         return False
     if strict_psa:
-        return any(has_term(combined, terms) for terms in PSA_SIGNALS.values())
-    # Practical extension guidance counts as PSA-like material only where its topic is agricultural.
+        return has_term(combined, PSA_SIGNALS)
     return True
 
 
@@ -289,9 +306,6 @@ def is_usable_text_block(block: str) -> bool:
             return True
 
     return False
-
-
-_RE_MAIN_CLASS = re.compile(r"(content|entry|article|post|main)", re.I)
 
 
 def extract_page(html: str | bytes, url: str) -> tuple[dict[str, Any], Any]:
@@ -329,15 +343,9 @@ def extract_page(html: str | bytes, url: str) -> tuple[dict[str, Any], Any]:
             if meta and meta.get("content"):
                 published = collapse(meta["content"])
                 break
-    alternates: list[tuple[str, str]] = []
-    for tag in soup.find_all("link", rel=lambda value: value and "alternate" in value):
-        lang = (tag.get("hreflang") or "").lower().split("-")[0]
-        href = tag.get("href")
-        if lang in {"en", "sw"} and href:
-            alternates.append((lang, normalise_url(urljoin(url, href))))
     return (
         {"canonical": canonical, "title": title, "blocks": blocks, "body_text": body_text,
-         "page_lang": page_lang, "published": published, "alternates": alternates,
+         "page_lang": page_lang, "published": published,
          "full_text": collapse(soup.get_text(" ", strip=True))},
         soup,
     )
@@ -356,13 +364,21 @@ def licence_evidence(page_text: str, source: dict[str, Any]) -> str:
 
 
 class LicensedCrawler:
-    def __init__(self, args: argparse.Namespace, source: dict[str, Any], stats: RunStats):
+    def __init__(self, args: argparse.Namespace, source: dict[str, Any], stats: RunStats, progress: Progress):
         self.args = args
         self.source = source
         self.stats = stats
+        self.progress = progress
         self.session = requests.Session()
         self.session.max_redirects = 5
-        self.session.headers.update({"User-Agent": args.user_agent, "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5"})
+        adapter = requests.adapters.HTTPAdapter(pool_connections=8, pool_maxsize=8, max_retries=1)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+        self.session.headers.update({
+            "User-Agent": args.user_agent,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5",
+            "Accept-Encoding": "gzip, deflate",
+        })
         if args.use_windows_root_certificates:
             bundle = windows_trust_bundle()
             self.session.verify = str(bundle)
@@ -370,14 +386,30 @@ class LicensedCrawler:
         self.robots: dict[str, RobotFileParser] = {}
         self.last_request: dict[str, float] = {}
 
-    def request(self, url: str) -> requests.Response | None:
+    def request(self, url: str, cap_bytes: int | None = None) -> requests.Response | None:
         host = host_of(url)
         elapsed = time.monotonic() - self.last_request.get(host, 0)
         if elapsed < self.args.delay:
             time.sleep(self.args.delay - elapsed)
         try:
-            response = self.session.get(url, timeout=self.args.timeout, allow_redirects=True)
+            response = self.session.get(url, timeout=self.args.timeout, allow_redirects=True, stream=bool(cap_bytes))
             self.last_request[host] = time.monotonic()
+            if cap_bytes and response.status_code == 200:
+                content_type = response.headers.get("content-type", "").lower()
+                if "html" in content_type:
+                    # Read at most cap_bytes from the wire instead of the whole page —
+                    # a long news-listing or archive page still gives us a usable DOM
+                    # for the visible article/paragraph tags without downloading its
+                    # full byte size. response.content / .text below just reuse this.
+                    try:
+                        data = response.raw.read(cap_bytes, decode_content=True)
+                        response._content = data
+                    except Exception:
+                        pass
+                    finally:
+                        response.close()
+                else:
+                    response.close()
             return response
         except requests.RequestException as exc:
             logging.warning("Request failed: %s (%s)", url, exc)
@@ -479,6 +511,10 @@ class LicensedCrawler:
         queue = self.initial_queue()
         visited: set[str] = set()
         while queue and self.stats.pages_fetched < self.args.max_pages_per_source:
+            if self.progress.done():
+                # Global record target or time budget reached — stop this source's
+                # crawl even if its own per-source page cap hasn't been hit yet.
+                break
             candidate = normalise_url(queue.popleft())
             if candidate in visited or not self.source_url_allowed(candidate):
                 continue
@@ -486,45 +522,35 @@ class LicensedCrawler:
             self.stats.pages_seen += 1
             if not self.allowed_by_robots(candidate):
                 continue
-            response = self.request(candidate)
+            response = self.request(candidate, cap_bytes=self.args.max_page_bytes)
             if response is None or response.status_code != 200:
                 continue
             content_type = response.headers.get("content-type", "").lower()
             if "html" not in content_type:
                 continue
             self.stats.pages_fetched += 1
-            # extract_page now returns (data, soup) — reuse soup for link discovery
             page, soup = extract_page(response.content, response.url)
-            if not is_relevant(page["title"], page["body_text"], self.source, self.args.strict_psa):
+            if not is_english_text(page["body_text"] or page["title"], page["page_lang"]):
+                self.stats.non_english_skipped += 1
+            elif not is_relevant(page["title"], page["body_text"], self.source, self.args.strict_psa):
                 self.stats.relevance_skipped += 1
             else:
                 evidence = licence_evidence(page["full_text"], self.source)
                 if self.source["license_mode"] == "per_page" and not evidence:
                     self.stats.licence_skipped += 1
                 else:
-                    alt_url = ""
-                    parallel_id = ""
-                    for alt_lang, alt in page["alternates"]:
-                        if alt_lang in {"en", "sw"} and alt != page["canonical"] and self.source_url_allowed(alt):
-                            alt_url = alt
-                            parallel_id = "PAIR-" + hashlib.sha256("\0".join(sorted([page["canonical"], alt])).encode("utf-8")).hexdigest()[:16].upper()
-                            if alt not in visited:
-                                queue.append(alt)
-                            break
                     for block in page["blocks"]:
-                        language, code = detect_language(block, page["page_lang"])
-                        if code not in {"en", "sw"}:
+                        if not is_english_text(block, page["page_lang"]):
                             continue
-                        if not has_term(f"{page['title']} {block}", AGRI_TERMS[code]):
+                        if not has_term(f"{page['title']} {block}", AGRI_TERMS):
                             continue
                         psa = block if len(block) > 130 or not page["title"] else f"{page['title']}: {block}"
+                        self.progress.add(1)
                         yield {
-                            "ID": record_id(page["canonical"], code, psa),
+                            "ID": record_id(page["canonical"], psa),
                             "Domain": host_of(page["canonical"]),
-                            "Language": language,
-                            "Language_Code": code,
                             "PSA": psa,
-                            "PSA_Type": classify_psa(f"{page['title']} {psa}", code),
+                            "PSA_Type": classify_psa(f"{page['title']} {psa}"),
                             "Source_URL": page["canonical"],
                             "Source_Title": page["title"],
                             "Publisher": self.source["publisher"],
@@ -534,11 +560,8 @@ class LicensedCrawler:
                             "Licence_URL": self.source.get("license_url", "") or page["canonical"],
                             "Licence_Evidence": evidence,
                             "Collected_At": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-                            "Parallel_Group_ID": parallel_id,
-                            "Parallel_Link_URL": alt_url,
                             "Review_Status": "candidate — provenance and licence verified; review PSA scope and alignment before model training",
                         }
-            # Reuse already-parsed soup — no double HTML parse for link discovery.
             queue_limit = self.args.max_pages_per_source * 8
             for link in soup.find_all("a", href=True):
                 target = normalise_url(urljoin(response.url, link["href"]))
@@ -560,35 +583,40 @@ def load_existing_ids(path: Path) -> tuple[set[str], set[str]]:
         for row in csv.DictReader(handle):
             if row.get("ID"):
                 ids.add(row["ID"])
-            if row.get("PSA") and row.get("Language_Code"):
-                hashes.add(f"{row['Language_Code']}:{text_hash(row['PSA'])}")
+            if row.get("PSA"):
+                hashes.add(text_hash(row["PSA"]))
     return ids, hashes
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--sources", default="sources.json", type=Path)
     parser.add_argument("--output", default="data/kenya_agri_psa.csv", type=Path)
     parser.add_argument("--report", default="data/collection_report.json", type=Path)
-    parser.add_argument("--max-pages-per-source", type=int, default=500, help="Use 1500+ for a full run after a small pilot.")
+    parser.add_argument("--max-pages-per-source", type=int, default=400, help="Per-source ceiling; the global --target-records / --time-budget-minutes usually stop a run earlier than this.")
+    parser.add_argument("--target-records", type=int, default=1200, help="Stop once roughly this many candidate records have been yielded across all sources (some buffer above 1000 to absorb de-duplication).")
+    parser.add_argument("--time-budget-minutes", type=float, default=20.0, help="Hard wall-clock cap for the whole run, regardless of per-source/global-record settings.")
+    parser.add_argument("--max-page-bytes", type=int, default=2_000_000, help="Read at most this many bytes of any single HTML page.")
     parser.add_argument("--delay", type=float, default=0.5, help="Minimum seconds between requests to the same host.")
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--max-sitemaps", type=int, default=4, help="Maximum sitemap files to read per source; use 0 to crawl from seeds only.")
     parser.add_argument("--strict-psa", action="store_true", help="Keep only pages with explicit announcement/advisory signals; default also includes practical extension guidance.")
     parser.add_argument("--use-windows-root-certificates", action="store_true", help="Use Windows' trusted roots for TLS verification on managed Windows networks; verification remains enabled.")
-    parser.add_argument("--ignore-robots", action="store_true", help="Bypass robots.txt restrictions when crawling permitted government research portals.")
     parser.add_argument("--source", action="append", dest="source_ids", help="Source id to run; repeat to select several.")
-    parser.add_argument("--user-agent", default="KenyaAgriPSACorpusBot/0.1 (research contact: replace-with-your-email@example.org)")
+    parser.add_argument("--max-workers", type=int, default=0, help="Sources crawled concurrently; 0 = auto (min(number of sources, 8)).")
+    parser.add_argument("--user-agent", default="KenyaAgriPSACorpusBot/0.2 (research contact: replace-with-your-email@example.org)")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
     if args.max_pages_per_source < 1 or args.delay < 0:
         raise SystemExit("--max-pages-per-source must be positive and --delay cannot be negative")
     if args.max_sitemaps < 0:
         raise SystemExit("--max-sitemaps cannot be negative")
+    if args.target_records < 1 or args.time_budget_minutes <= 0:
+        raise SystemExit("--target-records must be positive and --time-budget-minutes must be > 0")
     sources = read_sources(args.sources)
     if args.source_ids:
         selected = set(args.source_ids)
@@ -599,10 +627,11 @@ def main() -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     existing_ids, seen_texts = load_existing_ids(args.output)
     num_before = len(existing_ids)
-    logging.info("Destination file %s had %d records before this run.", args.output, num_before)
+    logging.debug("Destination file %s had %d records before this run.", args.output, num_before)
     write_header = not args.output.exists() or args.output.stat().st_size == 0
     all_reports: dict[str, Any] = {"started_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(), "sources": {}}
     lock = threading.Lock()
+    progress = Progress(args.target_records, time.monotonic() + args.time_budget_minutes * 60)
 
     with args.output.open("a", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=SCHEMA, extrasaction="ignore")
@@ -611,12 +640,11 @@ def main() -> int:
 
         def process_source(source: dict[str, Any]) -> tuple[str, dict[str, Any]]:
             stats = RunStats()
-            logging.info("Starting %s (Scraping from: %s)", source["id"], ", ".join(source.get("seed_urls", [])))
-            crawler = LicensedCrawler(args, source, stats)
+            crawler = LicensedCrawler(args, source, stats, progress)
             pending: list[dict] = []
             try:
                 for row in crawler.crawl() or []:
-                    dedupe_key = f"{row['Language_Code']}:{text_hash(row['PSA'])}"
+                    dedupe_key = text_hash(row["PSA"])
                     with lock:
                         if row["ID"] in existing_ids or dedupe_key in seen_texts:
                             stats.duplicate_records += 1
@@ -632,18 +660,25 @@ def main() -> int:
                             handle.flush()
                         pending.clear()
             except KeyboardInterrupt:
-                logging.warning("Stopped by user; the CSV already contains completed records.")
+                pass
             except Exception:
-                logging.exception("Unexpected failure in %s", source["id"])
                 stats.errors += 1
             if pending:
                 with lock:
                     writer.writerows(pending)
                     handle.flush()
-            logging.info("Finished %s: scraped %d records, skipped %d duplicates", source["id"], stats.records_written, stats.duplicate_records)
+
+            domain = host_of(source["seed_urls"][0])
+            total_scraped = stats.records_written + stats.duplicate_records
+            with lock:
+                print(f"Scraping {domain}")
+                print(f"Scraped {total_scraped} records ({stats.non_english_skipped} non-English, {stats.relevance_skipped} off-topic skipped)")
+                print(f"{stats.duplicate_records} records duplicate")
+                print(f"{stats.records_written} records saved")
+                print()
             return source["id"], vars(stats)
 
-        max_workers = min(len(sources), 4)
+        max_workers = args.max_workers if args.max_workers > 0 else min(len(sources), 8)
         total_written = 0
         total_duplicates = 0
         try:
@@ -660,19 +695,24 @@ def main() -> int:
     all_reports["finished_at"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     all_reports["output"] = str(args.output)
     all_reports["schema"] = SCHEMA
+    all_reports["stopped_reason"] = (
+        "target_records_reached" if progress.count >= args.target_records
+        else "time_budget_reached" if time.monotonic() >= progress.deadline_monotonic
+        else "all_sources_exhausted"
+    )
     args.report.parent.mkdir(parents=True, exist_ok=True)
     with args.report.open("w", encoding="utf-8") as handle:
         json.dump(all_reports, handle, indent=2)
 
-    logging.info("=" * 60)
-    logging.info("RUN SUMMARY FOR AGRICULTURE DOMAIN:")
-    logging.info("  Destination file before run: %d records", num_before)
-    logging.info("  Total records scraped in this run: %d", total_written)
-    logging.info("  Total duplicate records skipped (already in CSV): %d", total_duplicates)
-    logging.info("  Destination file now: %d records", num_before + total_written)
-    logging.info("=" * 60)
-    logging.info("Corpus: %s", args.output)
-    logging.info("Report: %s", args.report)
+    print("=" * 60)
+    print(f"Destination file before run : {num_before} records")
+    print(f"Records written this run    : {total_written}")
+    print(f"Duplicates skipped          : {total_duplicates}")
+    print(f"Destination file now        : {num_before + total_written} records")
+    print(f"Stopped because             : {all_reports['stopped_reason']}")
+    print("=" * 60)
+    print(f"Corpus : {args.output}")
+    print(f"Report : {args.report}")
     return 0
 
 
