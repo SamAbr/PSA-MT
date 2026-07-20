@@ -235,7 +235,7 @@ def clean_text_prefix(text: str) -> str:
 def is_usable_text_block(block: str) -> bool:
     lowered = block.casefold()
     word_count = len(re.findall(r"\b[\w'-]+\b", block))
-    if word_count < 7 or len(block) > 900:
+    if word_count < 5 or len(block) > 900:
         return False
     if re.search(r"(?:https?://|www\.)", lowered) or "isbn" in lowered or "©" in block:
         return False
@@ -246,11 +246,16 @@ def is_usable_text_block(block: str) -> bool:
             return False
 
     cleaned = clean_text_prefix(lowered)
-    for starter in IMPERATIVE_STARTERS:
-        if cleaned.startswith(starter + " ") or cleaned.startswith(starter + ","):
+    sentences = [s.strip() for s in re.split(r"[.!?]\s+", cleaned) if s.strip()]
+    for sentence in sentences:
+        s_clean = clean_text_prefix(sentence)
+        for starter in IMPERATIVE_STARTERS:
+            if s_clean.startswith(starter + " ") or s_clean.startswith(starter + ",") or s_clean == starter:
+                return True
+        if any(re.search(pat, sentence) for pat in MODAL_ACTION_PATTERNS):
             return True
 
-    return any(re.search(pat, lowered) for pat in MODAL_ACTION_PATTERNS)
+    return False
 
 
 def format_psa_text(text: str, psa_type: str) -> str:

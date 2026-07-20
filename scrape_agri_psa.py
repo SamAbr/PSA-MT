@@ -71,6 +71,48 @@ KENYA_TERMS = ("kenya", "kenyan", "nairobi", "mombasa", "kisumu", "nakuru", "eld
 SKIP_SUFFIXES = (".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".zip", ".mp3", ".mp4", ".avi", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".pdf")
 TRACKING_KEYS = {"fbclid", "gclid", "mc_cid", "mc_eid", "_hsenc", "_hsmi"}
 
+IMPERATIVE_STARTERS = [
+    # English Imperative Verbs & Starters
+    "activate", "apply", "attend", "avoid", "check", "clean", "collect", "confirm",
+    "cooperate", "create", "destroy", "download", "ensure", "heed", "inspect",
+    "log in", "login", "maintain", "manage", "minimize", "monitor", "note", "observe", "obtain",
+    "participate", "pay", "prepare", "prevent", "protect", "read", "register",
+    "renew", "report", "review", "sanitize", "say no", "select", "stay clear", "store",
+    "submit", "track", "transfer", "update", "upload", "use", "verify", "visit",
+    # Agriculture Directives & Verbs (English)
+    "plant", "sow", "harvest", "prune", "weed", "water", "irrigate", "fertilize", "feed",
+    "vaccinate", "drench", "treat", "spray", "mulch", "plough", "till", "graze", "breed",
+    "cull", "store", "dry", "grade", "sell", "market", "isolate", "quarantine", "dip",
+    "all farmers", "all pastoralists", "all growers", "all breeders", "notice is hereby given",
+    "the ministry of agriculture", "county government", "extension officer",
+    "farmers are advised", "farmers should", "pastoralists should", "growers should",
+    "always", "never", "do not", "don't", "to prevent", "to control", "to manage", "to avoid",
+    # Swahili Imperative Verbs & Starters (Agriculture)
+    "ondoa", "zuia", "dhibiti", "tumia", "epuka", "hakikisha", "punguza", "toa taarifa",
+    "jiandae", "safisha", "sajili", "tuma", "lipa", "angalia", "thibitisha", "hudhuria",
+    "pakua", "ingia", "pata", "usitumie", "usifanye", "panda", "vuna", "nyunyizia",
+    "palilia", "chanja", "lisha", "hifadhi", "panga", "mwagilia", "kausha", "uza",
+    "tenga", "wakulima wanapaswa", "wafugaji wanapaswa", "wakulima wote", "wafugaji wote",
+    "tahadhari", "tangazo", "taarifa kwa umma", "ushauri wa kilimo", "ilani", "taarifa",
+]
+
+MODAL_ACTION_PATTERNS = [
+    r"\b(farmers?|pastoralists?|growers?|breeders?|producers?)\s+(should|must|are advised|need to)\b",
+    r"\b(should|must) (be|have|apply|plant|spray|harvest|vaccinate|control|prevent|manage|verify|check)\b",
+    r"\b(is|are) recommended\b",
+    r"\b(wanapaswa|inatakikana|inashauriwa|inabidi|ni lazima|hakikisha)\b",
+]
+
+REJECT_PATTERNS = [
+    r"\b(is a channel of|provides scientific and practical)\b",
+    r"\b(magazine with practical information|publications provide a range of)\b",
+    r"\b(cookie|privacy policy|terms of use|all rights reserved|javascript|browser)\b",
+]
+
+
+def clean_text_prefix(text: str) -> str:
+    return re.sub(r"^[\w\s\(\)\/]+:\s*", "", text).strip()
+
 
 @dataclass
 class RunStats:
@@ -197,20 +239,32 @@ def is_relevant(title: str, page_text: str, source: dict[str, Any], strict_psa: 
 
 
 def is_usable_text_block(block: str) -> bool:
-    """Reject navigation, image credits, references and other non-PSA boilerplate."""
+    """Check if statement is an agricultural PSA starting directly with directive action."""
     lowered = block.casefold()
     word_count = len(re.findall(r"\b[\w'-]+\b", block))
-    if word_count < 7 or len(block) > 900:
+    if word_count < 5 or len(block) > 900:
         return False
     if re.search(r"(?:https?://|www\.)", lowered) or "isbn" in lowered or "©" in block:
         return False
     if lowered.startswith(("reference", "references", "bibliography", "source:", "photo:", "figure ")):
         return False
-    # Taxonomy navigation often collapses hundreds of crop labels into a single
-    # text node. It is not an advisory even if it mentions crop names.
     if lowered.count("(revised)") >= 3 or (lowered.count(" crops ") >= 5 and lowered.count(" pest") >= 3):
         return False
-    return True
+    for pat in REJECT_PATTERNS:
+        if re.search(pat, lowered):
+            return False
+
+    cleaned = clean_text_prefix(lowered)
+    sentences = [s.strip() for s in re.split(r"[.!?]\s+", cleaned) if s.strip()]
+    for sentence in sentences:
+        s_clean = clean_text_prefix(sentence)
+        for starter in IMPERATIVE_STARTERS:
+            if s_clean.startswith(starter + " ") or s_clean.startswith(starter + ",") or s_clean == starter:
+                return True
+        if any(re.search(pat, sentence) for pat in MODAL_ACTION_PATTERNS):
+            return True
+
+    return False
 
 
 def extract_page(html: str | bytes, url: str) -> dict[str, Any]:
